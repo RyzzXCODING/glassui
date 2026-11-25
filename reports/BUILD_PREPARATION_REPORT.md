@@ -61,17 +61,24 @@ mappings("net.fabricmc:intermediary:${property("minecraft_version")}:v2")
 
 This lets the reconstructed source compile **without renaming any Minecraft member**. Fabric API classes are unaffected. This is a build-configuration preparation change only — it was not compiled or verified by build.
 
+## Second-Pass Build Blockers Fixed
+
+- `settings.gradle.kts` used Groovy single quotes in Kotlin DSL → corrected to double quotes + `uri(...)`.
+- ModMenu `15.0.0` targeted MC `~1.21.6` and its repository was missing → replaced with `modmenu_version=17.0.1` (`>=1.21.11 <26`) and added `https://maven.terraformersmc.com/releases/` to `repositories`.
+- `archives_base_name=glassui` was unused → added `base { archivesName.set(...) }` so the expected artifact is `glassui-1.3.18.jar`.
+- Stale "Mojang mappings" comment in `gradle.properties` corrected to intermediary.
+
 ## Remaining Known Issues
 
-1. **ModMenu version `15.0.0`** in `modCompileOnly` is a placeholder — verify the correct version for MC 1.21.11 on Maven before building.
-2. Gradle wrapper jar was downloaded from the Gradle v9.2.1 tag — verify its checksum before use.
-3. `fabric-api` version `0.141.6+1.21.11` and Loader `0.19.5` were not resolved/verified (no build permitted).
+1. Gradle wrapper jar was downloaded from the Gradle v9.2.1 tag — verify its checksum before use.
+2. `fabric-api` `0.141.6+1.21.11`, Loader `0.19.5`, and all dependencies were checked only by URL/artifact metadata, not by a real dependency resolution or build.
+3. `from("LICENSE")` has no source file (Gradle skips it); `ProcessResources.expand(version)` is ineffective while `fabric.mod.json` holds a literal version. Both are harmless and documented.
+4. The source still contains unfixed behavioral findings (MIX-01 etc.) — see `SECOND_PASS_AUDIT.md`.
 
 ## Manual Build Steps (for the user)
 
-1. Verify/adjust `modCompileOnly` ModMenu version.
-2. Verify the Gradle wrapper checksum.
-3. Run `./gradlew build` personally.
+1. Verify the Gradle wrapper checksum.
+2. Run `./gradlew build` personally (only after the build approval gate).
 
 ## Explicit Statement
 

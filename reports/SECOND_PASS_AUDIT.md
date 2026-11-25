@@ -37,6 +37,22 @@ These were decompiler artifacts left by CFR 0.152 that would make `javac` fail. 
 
 **Post-fix static checks:** 50/50 files bracket-balanced; no `** break`/`** default`/`lblNN` tokens; no `this$0`; no `<Object>`/`Object error` remnants; all fix sites re-read.
 
+## 2b. Build Configuration Blockers (FOUND → FIXED, user-approved)
+
+The final audit agent checked Gradle files, mixins and resources and found two hard build blockers plus version/config inconsistencies. All were verified independently and fixed:
+
+| ID | Location | Problem | Fix | Verification |
+|---|---|---|---|---|
+| A-01 | `settings.gradle.kts:5-6` | Groovy single-quoted strings (`name = 'Fabric'`, `url = '...'`) are invalid Kotlin DSL `Char` literals → settings evaluation fails | Changed to double-quoted strings and `uri(...)` | File re-read; no single quotes remain in any `.kts` |
+| A-02 | `build.gradle.kts:15-18,31` | ModMenu artifact is not on Maven Central or Fabric Maven; repository missing | Added `https://maven.terraformersmc.com/releases/` to `repositories` | Artifact POM/JAR verified at that URL (HTTP 200) |
+| A-03 | `gradle.properties` / `build.gradle.kts` | ModMenu `15.0.0` targets MC `~1.21.6`, not 1.21.11 | Added `modmenu_version=17.0.1` (its metadata declares `>=1.21.11 <26`) and referenced it from the build script | Downloaded JAR metadata inspected; `com/terraformersmc/modmenu/api/ModMenuApi.class` present |
+| A-12 | `gradle.properties:18` | Stale comment claiming official Mojang mappings | Corrected to intermediary mappings | File re-read |
+| A-13 | `build.gradle.kts` | `archives_base_name=glassui` was never applied; output would be `GlassUI-1.3.18.jar` | Added `base { archivesName.set(providers.gradleProperty("archives_base_name")) }` | File re-read; no build run |
+| A-11 | `build.gradle.kts:53-56` | `from("LICENSE")` but no LICENSE file | **Left unchanged** — Gradle skips a missing source; adding license text would be a new content decision requiring approval | Documented, not fixed |
+| A-14 | `build.gradle.kts:45-51` | `expand(version)` ineffective (literal version in `fabric.mod.json`) | **Left unchanged** — harmless at 1.3.18; documented | Documented, not fixed |
+
+Mixin targets, mixin config, all five fonts and all Fabric metadata were verified as plausible/identical to the original JAR. `require=0` on two injectors (A-10) is documented, not changed.
+
 ## 3. Previous Bug-Fix Verification (all 28 approved IDs)
 
 Every approved fix from `REPAIR_PLAN.md` Groups 1–6 was re-read by independent agents.
@@ -93,8 +109,8 @@ Every approved fix from `REPAIR_PLAN.md` Groups 1–6 was re-read by independent
 
 **NOT READY FOR BUILD** — until build verification is explicitly approved and performed. Source-level blockers BP-01..BP-10 are fixed, but:
 
-1. No compilation has been run; the type fixes need build confirmation.
-2. Unfixed HIGH/MEDIUM runtime issues remain (N1–N4, M-1–M-3, F5/F6, N5) and require a user decision.
-3. Build-config documentation inconsistencies remain (see §4).
+1. No compilation has been run; the type fixes and the Gradle syntax fix need build confirmation.
+2. Unfixed HIGH/MEDIUM runtime issues remain (N1–N4, M-1–M-3, F5/F6, N5, A-04 MIX-01) and require a user decision.
+3. Two low-impact documentation items remain (A-11 missing LICENSE file, A-14 ineffective version expansion).
 
 No in-game test was performed. No JAR was produced or uploaded. No release was created.

@@ -6,6 +6,10 @@ plugins {
 group = property("maven_group")!!
 version = property("mod_version")!!
 
+base {
+    archivesName.set(providers.gradleProperty("archives_base_name"))
+}
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
@@ -15,6 +19,8 @@ java {
 repositories {
     mavenCentral()
     maven { url = uri("https://maven.fabricmc.net/") }
+    // ModMenu is published here, not on Maven Central or Fabric Maven.
+    maven { url = uri("https://maven.terraformersmc.com/releases/") }
 }
 
 dependencies {
@@ -28,7 +34,7 @@ dependencies {
     modImplementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_api_version")}")
 
     // ModMenu is optional; compile against it so the modmenu entrypoint resolves.
-    modCompileOnly("com.terraformersmc:modmenu:15.0.0")
+    modCompileOnly("com.terraformersmc:modmenu:${property("modmenu_version")}")
 }
 
 loom {
