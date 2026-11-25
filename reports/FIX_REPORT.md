@@ -37,6 +37,22 @@
 | RES-03 | GLFW callbacks installed once and never restored/freed on window change | Track window handle and saved callbacks; restore/free on window change, re-hook new window | `hud/IslandSearch.java` | No stale callbacks on a replaced GLFW window | No direct | Verified `hook()` | If the old window was destroyed, restore is skipped safely; third-party callbacks are left intact |
 | RES-05 | YouTube `HttpClient` never closed | `http.close()` in `YouTubeClient.stop()` | `hud/YouTubeClient.java` | Releases selector/connection resources | No | Verified `stop()` | TikTok's `CLIENT` is `static final` and reused across restarts, so it was intentionally **not** closed; `close()` may briefly wait for in-flight requests (bounded by their 10 s timeout) |
 
+## Second-Pass Compile-Blocker Repairs (user-approved)
+
+A mandatory second-pass review found 10 decompiler artifacts that would have prevented compilation. These were fixed after the user's explicit approval *"fix the error there then confirm what has been done"*:
+
+| ID | File | Change | UI / behavior impact |
+|---|---|---|---|
+| BP-01/02 | `music/Lyrics.java` | `List<Object>`→`List<Line>`, `Object err`→`String err` | None — type correction only |
+| BP-03/04/05 | `music/LocalPlayer.java` | `ArrayList<Object>`→`ArrayList<String>` (×2), `Object error`→`String error` | None — type correction only |
+| BP-06 | `hud/StreamHudRenderer.java` | `frame()` rewritten from CFR pseudocode with typed locals and a normal switch; draw order, matrix pop, hover coordinates preserved; added null guard for `MinecraftClient` | None intended; restores compilability and removes NPE risk |
+| BP-07 | `hud/ChatSound.java` | `pitch` hoisted out of switch cases (same 1.5/1.35/1.7 values) | None — scope correction only |
+| BP-08 | `hud/TikTokClient.java` | Removed bogus self-assigned `this$0` field; 8 uses now `TikTokClient.this.` | Restores functional WebSocket callbacks (previously null outer instance) |
+| BP-09 | `hud/StreamHudRenderer.java` | Uninitialized `rowIcon` removed; computed `shape` drawn in all branches | Fixes null-icon NPE / wrong glyph in search rows |
+| BP-10 | `ui/StreamHudConfigScreen.java` | `col`/`st` definitely assigned; two unused decompiler locals removed | Fixes compile error and wrong status text/color |
+
+Full detail: `reports/SECOND_PASS_AUDIT.md`. **No build was run; all of these need build verification.**
+
 ## Deliberately Not Fixed
 
 - **GUI-01** (Spotify UI unreachable) — enabling it would expose a currently-disabled platform; requires user decision.

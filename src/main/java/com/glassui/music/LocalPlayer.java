@@ -93,7 +93,7 @@ public final class LocalPlayer {
         GlassConfig cfg = GlassConfig.get();
         Path dir = FabricLoader.getInstance().getConfigDir().resolve("glassui");
         String exe = WIN ? ".exe" : "";
-        ArrayList<Object> c = new ArrayList<Object>();
+        ArrayList<String> c = new ArrayList<String>();
         if (!cfg.ffmpegPath.isBlank()) {
             c.add(cfg.ffmpegPath.trim());
         }
@@ -127,7 +127,7 @@ public final class LocalPlayer {
             ffmpeg = string;
             break;
         }
-        ArrayList<Object> y = new ArrayList<Object>();
+        ArrayList<String> y = new ArrayList<String>();
         if (!cfg.ytdlpPath.isBlank()) {
             y.add(cfg.ytdlpPath.trim());
         }
@@ -562,7 +562,7 @@ public final class LocalPlayer {
         void run() {
             boolean ok;
             Outcome o = null;
-            Object error = null;
+            String error = null;
             try {
                 try {
                     o = this.playWithResume(YouTubeStream.resolve(this.track.id()), () -> YouTubeStream.resolve(this.track.id()));

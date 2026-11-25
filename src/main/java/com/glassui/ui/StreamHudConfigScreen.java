@@ -565,10 +565,8 @@ extends class_437 {
         GlassConfig cfg = GlassConfig.get();
         StreamData d = StreamHud.DATA;
         if (tab == 0) {
-            int col;
-            String st;
-            String string = !d.status.isEmpty() ? d.status : (st = d.linkState.isEmpty() ? "Not connected" : d.linkState);
-            int n = !d.status.isEmpty() ? -38037 : (col = d.live ? -13577896 : -3618608);
+            String st = !d.status.isEmpty() ? d.status : (d.linkState.isEmpty() ? "Not connected" : d.linkState);
+            int col = !d.status.isEmpty() ? -38037 : (d.live ? -13577896 : -3618608);
             int dotCol = !d.status.isEmpty() ? 16729402 : (d.live ? 3199320 : 9342611);
             Glass.fill(ctx, this.px + 18 + 128, this.py + this.ph - 27, 7.0f, 7.0f, 3.5f, Glass.c(255, dotCol), Glass.c(255, dotCol));
             Fx.draw(ctx, this.field_22793, Fx.trim(this.field_22793, st, this.pw - 18 - 140 - 110), this.px + 18 + 140, this.py + this.ph - 28, col, false);

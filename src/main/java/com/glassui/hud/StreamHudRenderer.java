@@ -397,40 +397,42 @@ public final class StreamHudRenderer {
     }
 
     /*
-     * WARNING - Removed try catching itself - possible behaviour change.
-     * Unable to fully structure code
+     * Reconstructed from bytecode: CFR emitted this method as unstructured
+     * pseudocode. It was rewritten with explicit local declarations and a
+     * normal switch, preserving the original draw order and matrix handling.
      */
     private static void frame(class_332 ctx, class_327 tr, GlassConfig cfg, Snap s, float dt, float t, boolean preview, Id selected) {
-        sw = ctx.method_51421();
-        sh = ctx.method_51443();
-        m = ctx.method_51448();
+        int sw = ctx.method_51421();
+        int sh = ctx.method_51443();
+        Matrix3x2fStack m = ctx.method_51448();
         StreamHudRenderer.previewMode = preview;
         for (Id id : StreamHudRenderer.DRAW_ORDER) {
-            wc = StreamHudRenderer.widget(cfg, id);
+            GlassConfig.Widget wc = StreamHudRenderer.widget(cfg, id);
             if (!wc.on && !preview) continue;
-            v0 = e = id == Id.ISLAND && preview == false ? StreamHudRenderer.EXPAND.pos : 0.0f;
+            float e = id == Id.ISLAND && preview == false ? StreamHudRenderer.EXPAND.pos : 0.0f;
             if (id == Id.PROFILE) {
                 e = StreamHudRenderer.airAnim(cfg, s, dt, preview);
             }
-            v1 = StreamHudRenderer.chatMaxH = id == Id.CHAT ? (float)sh / Math.max(0.5f, Math.min(2.5f, wc.scale)) - 4.0f : 1.0E9f;
+            StreamHudRenderer.chatMaxH = id == Id.CHAT ? (float)sh / Math.max(0.5f, Math.min(2.5f, wc.scale)) - 4.0f : 1.0E9f;
             if (id == Id.LYRICS) {
                 StreamHudRenderer.lyrFit(sw, wc.scale);
             }
-            if ((sz = StreamHudRenderer.size(id, s, tr, e)) == null) continue;
-            r = StreamHudRenderer.place(wc, sz[0], sz[1], sw, sh);
+            float[] sz = StreamHudRenderer.size(id, s, tr, e);
+            if (sz == null) continue;
+            R r = StreamHudRenderer.place(wc, sz[0], sz[1], sw, sh);
             if (id == Id.ISLAND && cfg.islandDock) {
                 r = new R(r.x, 0.0f, r.w, r.h, r.s);
             }
             if (id == Id.ISLAND && !preview) {
                 StreamHudRenderer.lastIsland = r;
             }
-            lx = -1000.0;
-            ly = -1000.0;
+            double lx = -1000.0;
+            double ly = -1000.0;
             if (!(id != Id.ISLAND && id != Id.CASSETTE || preview)) {
-                mc = class_310.method_1551();
-                if (mc.field_1755 != null) {
-                    mx = mc.field_1729.method_1603() * (double)sw / (double)mc.method_22683().method_4480();
-                    my = mc.field_1729.method_1604() * (double)sh / (double)mc.method_22683().method_4507();
+                class_310 mc = class_310.method_1551();
+                if (mc != null && mc.field_1755 != null) {
+                    double mx = mc.field_1729.method_1603() * (double)sw / (double)mc.method_22683().method_4480();
+                    double my = mc.field_1729.method_1604() * (double)sh / (double)mc.method_22683().method_4507();
                     lx = (mx - (double)r.x) / (double)r.s;
                     ly = (my - (double)r.y) / (double)r.s;
                 }
@@ -442,85 +444,47 @@ public final class StreamHudRenderer {
                 switch (id.ordinal()) {
                     case 0: {
                         StreamHudRenderer.island(ctx, tr, s, sz[0], sz[1], e, t, dt, lx, ly);
-                        ** break;
-lbl40:
-                        // 1 sources
-
                         break;
                     }
                     case 1: {
                         StreamHudRenderer.chat(ctx, tr, s.chat, dt, preview);
-                        ** break;
-lbl44:
-                        // 1 sources
-
                         break;
                     }
                     case 2: {
                         StreamHudRenderer.song(ctx, tr, s.song, (int)sz[0], t);
-                        ** break;
-lbl48:
-                        // 1 sources
-
                         break;
                     }
                     case 3: {
                         StreamHudRenderer.profile(ctx, tr, s.vitals, sz[0], sz[1], e, t, dt);
-                        ** break;
-lbl52:
-                        // 1 sources
-
                         break;
                     }
                     case 4: {
                         StreamHudRenderer.combo(ctx, tr, dt, preview);
-                        ** break;
-lbl56:
-                        // 1 sources
-
                         break;
                     }
                     case 5: {
                         StreamHudRenderer.alert(ctx, tr, dt, preview);
-                        ** break;
-lbl60:
-                        // 1 sources
-
                         break;
                     }
                     case 6: {
                         StreamHudRenderer.cassette(ctx, tr, s.song, t, dt, lx, ly);
-                        ** break;
-lbl64:
-                        // 1 sources
-
                         break;
                     }
                     case 7: {
                         StreamHudRenderer.lyrics(ctx, tr, s.song, dt, preview);
-                        ** break;
-lbl68:
-                        // 1 sources
-
                         break;
                     }
                     case 8: {
                         StreamHudRenderer.requests(ctx, tr, preview);
-                        ** break;
-lbl72:
-                        // 1 sources
-
                         break;
                     }
                     case 9: {
                         StreamHudRenderer.topTap(ctx, tr, preview);
                         break;
                     }
-                    ** default:
-lbl77:
-                    // 1 sources
-
-                    break;
+                    default: {
+                        break;
+                    }
                 }
             }
             finally {
@@ -690,7 +654,6 @@ lbl77:
         List<MusicHub.Track> res = MusicHub.listing();
         boolean sugg = MusicHub.listingIsSuggestions();
         for (int i = 0; i < 4 && i < res.size(); ++i) {
-            IconShapes.Shape rowIcon;
             boolean hov;
             MusicHub.Track tk = res.get(i);
             int y = 52 + i * 18;
@@ -699,9 +662,9 @@ lbl77:
                 Glass.fill(ctx, 8.0f, y, w - 16, 17.0f, 7.0f, Glass.c((int)(48.0f * a), 0xFFFFFF), Glass.c((int)(24.0f * a), 0xFFFFFF));
             }
             boolean isSug = "SUGGEST".equals(tk.provider());
-            IconShapes.Shape shape = hov ? IconShapes.Shape.PLAY : (!isSug ? IconShapes.Shape.NOTE : ("Recent".equals(tk.artist()) ? IconShapes.Shape.CLOCK : (rowIcon = "Popular".equals(tk.artist()) ? IconShapes.Shape.TREND : IconShapes.Shape.PLAY)));
+            IconShapes.Shape shape = hov ? IconShapes.Shape.PLAY : (!isSug ? IconShapes.Shape.NOTE : ("Recent".equals(tk.artist()) ? IconShapes.Shape.CLOCK : ("Popular".equals(tk.artist()) ? IconShapes.Shape.TREND : IconShapes.Shape.PLAY)));
             int rowTint = isSug ? 6607615 : ("SPOTIFY".equals(tk.provider()) ? 3199320 : 16729402);
-            Icons.drawShadowed(ctx, rowIcon, 13.0f, y + 4, 9.0f, rowTint, A);
+            Icons.drawShadowed(ctx, shape, 13.0f, y + 4, 9.0f, rowTint, A);
             Fx.draw(ctx, tr, Fx.trim(tr, tk.title(), w - 44), 28, y + 1, Glass.c(A, 0xFFFFFF), true);
             Fx.draw(ctx, tr, Fx.trim(tr, tk.artist(), w - 44), 28, y + 9, Glass.c(Math.max(24, A * 2 / 3), 0xB0B0BA), false);
         }

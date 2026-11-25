@@ -120,8 +120,8 @@ public final class Lyrics {
     }
 
     private static void load(int g, String rawTitle, String rawArtist) {
-        List<Object> found = List.of();
-        Object err = "";
+        List<Line> found = List.of();
+        String err = "";
         String title = Lyrics.cleanTitle(rawTitle);
         String artist = Lyrics.cleanArtist(rawArtist);
         for (String url : Lyrics.candidates(rawTitle, rawArtist)) {

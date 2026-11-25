@@ -48,20 +48,21 @@ public final class ChatSound {
         if (mc == null || mc.field_1724 == null || volPct <= 0) {
             return;
         }
+        float pitch = 1.7f;
         switch (type) {
             case 1: {
                 ev = class_3417.field_15219;
-                float pitch = 1.5f;
+                pitch = 1.5f;
                 break;
             }
             case 2: {
                 ev = class_3417.field_14627;
-                float pitch = 1.35f;
+                pitch = 1.35f;
                 break;
             }
             default: {
                 ev = class_3417.field_15197;
-                float pitch = 1.7f;
+                pitch = 1.7f;
             }
         }
         mc.field_1724.method_5783(ev, Math.min(1.0f, (float)volPct / 100.0f), pitch += (float)(Math.random() - 0.5) * 0.12f);

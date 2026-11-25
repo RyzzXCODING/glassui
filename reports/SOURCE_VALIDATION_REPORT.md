@@ -32,6 +32,12 @@
 - Verify the ModMenu `modCompileOnly` version and Gradle wrapper checksum.
 - Confirm the GitHub target repository before any push.
 
+## Second-Pass Correction
+
+The initial static validation did **not** type-check Java. A mandatory second-pass audit found 10 compile-blocking CFR artifacts (BP-01..BP-10) in `Lyrics.java`, `LocalPlayer.java`, `StreamHudRenderer.java` (×2), `ChatSound.java`, `TikTokClient.java`, and `StreamHudConfigScreen.java`. Those were fixed with the user's explicit approval and re-checked by source inspection: no pseudo-tokens (`** break`, `** default`, `lblNN`), no `this$0`, no `<Object>`/`Object error` remnants, 50/50 files bracket-balanced. See `reports/SECOND_PASS_AUDIT.md`.
+
+**Type correctness is still unverified by compilation.** The checks above are structural only.
+
 ## Explicit Statement
 
 **No build, compilation, Gradle task, JAR generation, or runtime execution was performed.**

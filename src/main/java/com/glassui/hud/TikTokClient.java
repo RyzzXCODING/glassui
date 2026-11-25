@@ -86,15 +86,10 @@ final class TikTokClient {
         final CountDownLatch closed = new CountDownLatch(1);
         final StringBuilder buf = new StringBuilder();
         WebSocket.Listener l = new WebSocket.Listener(){
-            final /* synthetic */ TikTokClient this$0;
-            {
-                this.this$0 = this$0;
-            }
-
             @Override
             public void onOpen(WebSocket w) {
-                this.this$0.d.status = "";
-                this.this$0.d.linkState = "TIKFINITY".equals(this.this$0.mode) ? "Connected to TikFinity" : "Connected - waiting for @" + this.this$0.user;
+                TikTokClient.this.d.status = "";
+                TikTokClient.this.d.linkState = "TIKFINITY".equals(TikTokClient.this.mode) ? "Connected to TikFinity" : "Connected - waiting for @" + TikTokClient.this.user;
                 w.request(1L);
             }
 
@@ -105,8 +100,8 @@ final class TikTokClient {
                     String s = buf.toString();
                     buf.setLength(0);
                     try {
-                        if (TikTokEvents.handle(s, this.this$0.d)) {
-                            this.this$0.gotEvent = true;
+                        if (TikTokEvents.handle(s, TikTokClient.this.d)) {
+                            TikTokClient.this.gotEvent = true;
                         } else {
                             String clip = s.length() > 300 ? s.substring(0, 300) : s;
                             String low = clip.toLowerCase();
@@ -128,7 +123,7 @@ final class TikTokClient {
             @Override
             public CompletionStage<?> onClose(WebSocket w, int code, String reason) {
                 if (reason != null && !reason.isBlank()) {
-                    this.this$0.d.status = TikTokClient.shorten(reason);
+                    TikTokClient.this.d.status = TikTokClient.shorten(reason);
                 }
                 closed.countDown();
                 return null;
@@ -136,7 +131,7 @@ final class TikTokClient {
 
             @Override
             public void onError(WebSocket w, Throwable t) {
-                this.this$0.d.status = TikTokClient.shorten(String.valueOf(t.getMessage()));
+                TikTokClient.this.d.status = TikTokClient.shorten(String.valueOf(t.getMessage()));
                 closed.countDown();
             }
         };
