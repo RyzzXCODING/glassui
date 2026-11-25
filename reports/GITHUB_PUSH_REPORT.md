@@ -76,5 +76,10 @@ source and updated reports were committed and pushed to the same `master` branch
 | Push | SUCCESS, no force-push |
 | Verification | Remote HEAD confirmed via GitHub API |
 
+A third follow-up commit `843d4f7` (`Fix Gradle DSL and dependency blockers found in
+second-pass audit`) was also pushed to `master`: it corrected invalid Kotlin DSL quoting
+in `settings.gradle.kts`, added the ModMenu repository, raised ModMenu to `17.0.1`
+(MC `>=1.21.11 <26`), applied `archives_base_name`, and updated the audit reports.
+
 No JAR, build artifact, token, or secret was uploaded. No GitHub Release was created
 (no build has been performed).
