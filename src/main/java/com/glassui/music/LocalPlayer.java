@@ -223,9 +223,17 @@ public final class LocalPlayer {
             return "Checking for ffmpeg...";
         }
         if (ffmpeg == null) {
-            return "ffmpeg not found (auto-setup on first play). " + FFMPEG_HINT;
+            return "ffmpeg not found. " + (canAutoSetup() ? "Auto-setup will try on first play. " : "") + FFMPEG_HINT;
         }
         return "Background player ready (ffmpeg).";
+    }
+
+    private static boolean canAutoSetup() {
+        GlassConfig cfg = GlassConfig.get();
+        if (!cfg.autoSetupPlayer) return false;
+        if (WIN) return true;
+        String arch = System.getProperty("os.arch", "").toLowerCase(Locale.ROOT);
+        return arch.contains("aarch64") || arch.contains("arm64") || arch.contains("amd64") || arch.contains("x86_64");
     }
 
     public static boolean settingUp() {
@@ -244,40 +252,17 @@ public final class LocalPlayer {
         if (LocalPlayer.ready()) {
             return true;
         }
-        if (!cfg.autoSetupPlayer || !WIN) {
+        if (!cfg.autoSetupPlayer) {
             return false;
         }
         settingUp = true;
         try {
             Path dir = FabricLoader.getInstance().getConfigDir().resolve("glassui");
             Files.createDirectories(dir, new FileAttribute[0]);
-            setupStatus = "Downloading ffmpeg...";
-            MusicHub.status(setupStatus);
-            Path zip = dir.resolve("ffmpeg-download.zip");
-            LocalPlayer.download("https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-lgpl.zip", zip);
-            setupStatus = "Unpacking ffmpeg...";
-            MusicHub.status(setupStatus);
-            Path out = dir.resolve("ffmpeg.exe");
-            boolean found = false;
-            try (ZipInputStream z = new ZipInputStream(Files.newInputStream(zip, new OpenOption[0]));){
-                ZipEntry e;
-                while ((e = z.getNextEntry()) != null) {
-                    if (e.isDirectory() || !e.getName().endsWith("/bin/ffmpeg.exe")) continue;
-                    Files.copy(z, out, StandardCopyOption.REPLACE_EXISTING);
-                    found = true;
-                    break;
-                }
-            }
-            finally {
-                Files.deleteIfExists(zip);
-            }
-            if (!found) {
-                throw new IOException("ffmpeg.exe not found in archive");
-            }
-            if (LocalPlayer.works(out.toString())) {
-                ffmpeg = out.toString();
+            if (WIN) {
+                setupFfmpegWindows(dir);
             } else {
-                GlassUiClient.LOGGER.warn("Downloaded ffmpeg does not run: {}", (Object)out);
+                setupFfmpegLinux(dir);
             }
         }
         catch (Exception e) {
@@ -288,6 +273,108 @@ public final class LocalPlayer {
             setupStatus = "";
         }
         return LocalPlayer.ready();
+    }
+
+    private static void setupFfmpegWindows(Path dir) throws Exception {
+        setupStatus = "Downloading ffmpeg...";
+        MusicHub.status(setupStatus);
+        Path zip = dir.resolve("ffmpeg-download.zip");
+        LocalPlayer.download("https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-lgpl.zip", zip);
+        setupStatus = "Unpacking ffmpeg...";
+        MusicHub.status(setupStatus);
+        Path out = dir.resolve("ffmpeg.exe");
+        boolean found = false;
+        try (ZipInputStream z = new ZipInputStream(Files.newInputStream(zip, new OpenOption[0]));) {
+            ZipEntry e;
+            while ((e = z.getNextEntry()) != null) {
+                if (e.isDirectory() || !e.getName().endsWith("/bin/ffmpeg.exe")) continue;
+                Files.copy(z, out, StandardCopyOption.REPLACE_EXISTING);
+                found = true;
+                break;
+            }
+        }
+        finally {
+            Files.deleteIfExists(zip);
+        }
+        if (!found) {
+            throw new IOException("ffmpeg.exe not found in archive");
+        }
+        if (LocalPlayer.works(out.toString())) {
+            ffmpeg = out.toString();
+        } else {
+            GlassUiClient.LOGGER.warn("Downloaded ffmpeg does not run: {}", (Object)out);
+        }
+    }
+
+    private static void setupFfmpegLinux(Path dir) throws Exception {
+        String arch = System.getProperty("os.arch", "").toLowerCase(Locale.ROOT);
+        String url;
+        String binName;
+        if (arch.contains("aarch64") || arch.contains("arm64")) {
+            url = "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-arm64-static.tar.xz";
+            binName = "ffmpeg";
+        } else if (arch.contains("amd64") || arch.contains("x86_64")) {
+            url = "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz";
+            binName = "ffmpeg";
+        } else {
+            throw new IOException("Unsupported Linux arch for auto-setup: " + arch);
+        }
+        setupStatus = "Downloading ffmpeg...";
+        MusicHub.status(setupStatus);
+        Path archive = dir.resolve("ffmpeg-download.tar.xz");
+        LocalPlayer.download(url, archive);
+        setupStatus = "Unpacking ffmpeg...";
+        MusicHub.status(setupStatus);
+        Path tmp = dir.resolve("ffmpeg-unpack");
+        LocalPlayer.deleteTree(tmp);
+        Files.createDirectories(tmp, new FileAttribute[0]);
+        try {
+            ProcessBuilder pb = new ProcessBuilder("tar", "-xJf", archive.toString(), "-C", tmp.toString());
+            pb.redirectErrorStream(true);
+            Process p = pb.start();
+            String outLog = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            if (!p.waitFor(120L, TimeUnit.SECONDS)) {
+                p.destroyForcibly();
+                throw new IOException("tar timed out unpacking ffmpeg");
+            }
+            if (p.exitValue() != 0) {
+                throw new IOException("tar failed: " + LocalPlayer.safeError(outLog));
+            }
+            Path found = null;
+            try (var walk = Files.walk(tmp)) {
+                for (Path pth : (Iterable<Path>)walk::iterator) {
+                    if (Files.isRegularFile(pth) && pth.getFileName().toString().equals(binName)) {
+                        found = pth;
+                        break;
+                    }
+                }
+            }
+            if (found == null) {
+                throw new IOException("ffmpeg binary not found in archive");
+            }
+            Path out = dir.resolve("ffmpeg");
+            Files.copy(found, out, StandardCopyOption.REPLACE_EXISTING);
+            out.toFile().setExecutable(true, false);
+            if (LocalPlayer.works(out.toString())) {
+                ffmpeg = out.toString();
+            } else {
+                GlassUiClient.LOGGER.warn("Downloaded ffmpeg does not run: {}", (Object)out);
+            }
+        }
+        finally {
+            Files.deleteIfExists(archive);
+            LocalPlayer.deleteTree(tmp);
+        }
+    }
+
+    private static void deleteTree(Path root) throws IOException {
+        if (root == null || !Files.exists(root)) return;
+        try (var walk = Files.walk(root)) {
+            List<Path> paths = walk.sorted(java.util.Comparator.reverseOrder()).toList();
+            for (Path p : paths) {
+                Files.deleteIfExists(p);
+            }
+        }
     }
 
     public static void setupAsync() {
@@ -555,7 +642,9 @@ public final class LocalPlayer {
 
     static {
         queue = List.of();
-        FFMPEG_HINT = WIN ? "Put ffmpeg.exe in config/glassui/ or run: winget install ffmpeg" : "Install it with your package manager (apt/dnf/pacman install ffmpeg, brew install ffmpeg).";
+        FFMPEG_HINT = WIN
+            ? "Put ffmpeg.exe in config/glassui/ or run: winget install ffmpeg"
+            : "Put ffmpeg in config/glassui/ or install via package manager (apt/dnf/pacman/apk install ffmpeg).";
         setupStatus = "";
         DL = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).connectTimeout(Duration.ofSeconds(15L)).build();
         YT_LOCK = new Object();

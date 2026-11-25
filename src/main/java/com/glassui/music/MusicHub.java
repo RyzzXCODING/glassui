@@ -381,7 +381,7 @@ public final class MusicHub {
                         MusicHub.set("Playing: " + MusicHub.clip(t.title()), false);
                         return;
                     }
-                    if (cfg.browserFallback || !cfg.localPlayer) {
+                    if (cfg.browserFallback) {
                         Launcher.open("https://music.youtube.com/watch?v=" + t.id());
                         MusicHub.set("Opened in browser. " + LocalPlayer.statusLine(), false);
                         return;
