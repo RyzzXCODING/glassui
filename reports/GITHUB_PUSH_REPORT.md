@@ -63,7 +63,18 @@ src/main/java/com/glassui/   (50 Java source files)
 src/main/resources/          (Fabric metadata + fonts)
 ```
 
-## Note
+## Follow-up Push (second-pass compile-blocker repair)
 
-A follow-up commit may be added to include this finalized push report itself. No source
-behavior changes are made by that commit.
+After the user approved fixing the errors found in the second-pass audit, the repaired
+source and updated reports were committed and pushed to the same `master` branch:
+
+| Field | Value |
+|---|---|
+| Commit | `c545e146a55dc6e4e6aa8a75f54bdf1cbdabd445` (`c545e14`) |
+| Message | `Fix decompiler compile blockers found in second-pass audit` |
+| Files changed | 9 (7 Java files, 3 report files including the new `SECOND_PASS_AUDIT.md`) |
+| Push | SUCCESS, no force-push |
+| Verification | Remote HEAD confirmed via GitHub API |
+
+No JAR, build artifact, token, or secret was uploaded. No GitHub Release was created
+(no build has been performed).
