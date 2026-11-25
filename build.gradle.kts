@@ -1,5 +1,5 @@
 plugins {
-    id("net.fabricmc.fabric-loom-remap") version "1.19.3"
+    id("net.fabricmc.fabric-loom-remap") version "1.14.10"
     java
 }
 
@@ -57,7 +57,10 @@ tasks.withType<ProcessResources> {
 }
 
 tasks.withType<Jar> {
-    from("LICENSE") {
-        rename { "${it}_${project.base.archivesName.get()}" }
+    val license = file("LICENSE")
+    if (license.exists()) {
+        from(license) {
+            rename { "${it}_${project.base.archivesName.get()}" }
+        }
     }
 }

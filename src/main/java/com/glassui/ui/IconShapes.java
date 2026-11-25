@@ -73,7 +73,7 @@ public final class IconShapes {
             }
             open = next;
         }
-        return (int[][])list.toArray((T[])new int[0][]);
+        return (int[][])list.toArray(new int[0][]);
     }
 
     private static float[][] build(Shape s, int n) {

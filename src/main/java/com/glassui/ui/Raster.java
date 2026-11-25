@@ -77,7 +77,8 @@ public final class Raster {
                 }
                 if (a > 0) {
                     Grp g = null;
-                    for (Grp p : prev) {
+                    for (Object po : prev) {
+                        Grp p = (Grp)po;
                         if (p.c != c || p.e != e || p.a != a) continue;
                         g = p;
                         break;

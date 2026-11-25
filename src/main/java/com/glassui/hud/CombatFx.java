@@ -86,7 +86,6 @@ public final class CombatFx {
     }
 
     private static void confirm(class_310 mc, class_1309 e, float dmg, boolean kill) {
-        int rgb;
         GlassConfig cfg = GlassConfig.get();
         if (cfg.hudEnabled && cfg.combo.on) {
             ComboTracker.hit();
@@ -98,7 +97,7 @@ public final class CombatFx {
             NUMS.remove(0);
         }
         String s = CombatFx.fmt(dmg);
-        int n = kill ? 16766474 : (dmg >= 14.0f ? 16731450 : (rgb = dmg >= 7.0f ? 16752394 : 0xFFFFFF));
+        int rgb = kill ? 16766474 : (dmg >= 14.0f ? 16731450 : (dmg >= 7.0f ? 16752394 : 0xFFFFFF));
         float mult = kill ? 1.35f : (dmg >= 14.0f ? 1.25f : 1.0f);
         NUMS.add(new Num(e.method_23317() + (RND.nextDouble() - 0.5) * 0.5, e.method_23318() + (double)e.method_17682() * 0.9, e.method_23321() + (RND.nextDouble() - 0.5) * 0.5, s, rgb, mult, (RND.nextFloat() - 0.5f) * 36.0f, mc.field_1772));
     }

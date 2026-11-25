@@ -48,8 +48,8 @@ extends class_437 {
         int bw = 92;
         this.no = class_4185.method_46430((class_2561)class_5244.field_24335, b -> this.method_25419()).method_46434(this.px + 12, this.py + 100 - 32, bw, 20).method_46431();
         this.yes = class_4185.method_46430((class_2561)this.confirm, b -> this.onConfirm.run()).method_46434(this.px + 220 - 12 - bw, this.py + 100 - 32, bw, 20).method_46431();
-        this.method_37063((class_364)this.no);
-        this.method_37063((class_364)this.yes);
+        this.method_37063(this.no);
+        this.method_37063(this.yes);
     }
 
     public void method_25419() {
@@ -78,7 +78,8 @@ extends class_437 {
         Fx.draw(ctx, this.field_22793, this.field_22785, (this.field_22789 - Fx.w(this.field_22793, this.field_22785)) / 2, this.py + 14, col, true);
         List lines = this.field_22793.method_1728((class_5348)this.message, 192);
         int ly = this.py + 30;
-        for (class_5481 l : lines) {
+        for (Object o : lines) {
+            class_5481 l = (class_5481)o;
             Fx.draw(ctx, this.field_22793, l, (this.field_22789 - Fx.w(this.field_22793, l)) / 2, ly, Glass.c(Math.max(64, (int)(200.0f * a)), 0xD0D0D8), false);
             ly += 10;
         }

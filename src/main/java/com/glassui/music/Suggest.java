@@ -116,7 +116,6 @@ public final class Suggest {
             while (h.size() > MAX_HISTORY) {
                 h.remove(h.size() - 1);
             }
-            // ** MonitorExit[var3_3] (shouldn't be in output)
             GlassConfig.save();
             Suggest.rebuild();
             return;
@@ -140,7 +139,6 @@ public final class Suggest {
     private static List<String> recent() {
         Class<Suggest> clazz = Suggest.class;
         synchronized (Suggest.class) {
-            // ** MonitorExit[var0] (shouldn't be in output)
             return new ArrayList<String>(GlassConfig.get().musicHistory);
         }
     }

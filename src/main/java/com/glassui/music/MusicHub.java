@@ -502,7 +502,6 @@ public final class MusicHub {
         Class<MusicHub> clazz = MusicHub.class;
         synchronized (MusicHub.class) {
             access = null;
-            // ** MonitorExit[var1_1] (shouldn't be in output)
             GlassConfig.save();
             MusicHub.set("Spotify disconnected", false);
             return;
@@ -547,7 +546,6 @@ public final class MusicHub {
             access = t.get("access_token").getAsString();
             long sec = t.has("expires_in") ? t.get("expires_in").getAsLong() : 3600L;
             accessExp = System.currentTimeMillis() + sec * 1000L;
-            // ** MonitorExit[var1_1] (shouldn't be in output)
             if (t.has("refresh_token") && !t.get("refresh_token").isJsonNull()) {
                 GlassConfig.get().spotifyRefresh = t.get("refresh_token").getAsString();
                 GlassConfig.save();
@@ -594,7 +592,6 @@ public final class MusicHub {
         Class<MusicHub> clazz = MusicHub.class;
         synchronized (MusicHub.class) {
             access = null;
-            // ** MonitorExit[var4_4] (shouldn't be in output)
         }
         return MusicHub.api(method, path, json);
     }

@@ -21,13 +21,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(value={class_4264.class})
 public abstract class PressableWidgetMixin {
     @Shadow
-    protected void method_76256(class_332 ctx);
+    protected abstract void method_76256(class_332 ctx);
 
     @Inject(method={"method_48579"}, at={@At(value="HEAD")}, cancellable=true)
     private void glassui$render(class_332 ctx, int mx, int my, float dt, CallbackInfo ci) {
-        PressableWidgetMixin self = this;
+        Object self = (Object)this;
         if (self instanceof CustomGlassWidget) {
-            CustomGlassWidget cg = (CustomGlassWidget)((Object)self);
+            CustomGlassWidget cg = (CustomGlassWidget)self;
             cg.renderGlass(ctx, mx, my, dt);
             this.method_76256(ctx);
             ci.cancel();

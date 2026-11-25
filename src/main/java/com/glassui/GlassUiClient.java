@@ -104,8 +104,6 @@ implements ClientModInitializer {
     }
 
     private static void arrowKeys(class_310 mc, GlassConfig cfg) {
-        int dir;
-        boolean dn;
         long win = GLFW.glfwGetCurrentContext();
         boolean active = cfg.arrowKeys && mc.field_1755 == null && mc.field_1687 != null && win != 0L;
         boolean rightPressed = win != 0L && GLFW.glfwGetKey(win, (int)262) == 1;
@@ -113,13 +111,13 @@ implements ClientModInitializer {
         boolean downPressed = win != 0L && GLFW.glfwGetKey(win, (int)264) == 1;
         boolean right = active && rightPressed;
         boolean up = active && upPressed;
-        boolean bl = dn = active && downPressed;
+        boolean dn = active && downPressed;
         if (right && !skipKeyDown && StreamHud.DATA.song != null) {
             MediaControl.send(MediaControl.Cmd.NEXT);
             mc.field_1705.method_1758((class_2561)class_2561.method_43470((String)"Next song"), false);
         }
         skipKeyDown = rightPressed;
-        int n = up == dn ? 0 : (dir = up ? 1 : -1);
+        int dir = up == dn ? 0 : (up ? 1 : -1);
         if (dir == 0) {
             volHold = 0;
             if (volChanged) {

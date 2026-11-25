@@ -853,9 +853,9 @@ public final class StreamHudRenderer {
         String key = GlassConfig.get().font + "|" + maxW + "|" + s;
         String r = FIT.get(key);
         if (r == null) {
-            Object c = s.replaceAll("\\s+", " ").trim();
-            if (Fx.w(tr, (String)c) > maxW) {
-                c = Fx.trim(tr, (String)c, maxW - Fx.w(tr, "..")) + "..";
+            String c = s.replaceAll("\\s+", " ").trim();
+            if (Fx.w(tr, c) > maxW) {
+                c = Fx.trim(tr, c, maxW - Fx.w(tr, "..")) + "..";
             }
             r = c;
             FIT.put(key, r);

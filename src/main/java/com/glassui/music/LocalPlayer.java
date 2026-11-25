@@ -517,7 +517,6 @@ public final class LocalPlayer {
             synchronized (LocalPlayer.class) {
                 Session s = cur;
                 if (s == null || !s.alive) {
-                    // ** MonitorExit[var1_1] (shouldn't be in output)
                     return;
                 }
                 try {

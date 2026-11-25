@@ -75,7 +75,7 @@ extends class_437 {
     }
 
     private <T extends class_339> T reg(T w) {
-        this.method_37063((class_364)w);
+        this.method_37063(w);
         this.ws.add(w);
         return w;
     }

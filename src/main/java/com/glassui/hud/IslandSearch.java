@@ -58,8 +58,8 @@ public final class IslandSearch {
     }
 
     private static void hook() {
-        GLFWCharCallback[] pc;
-        GLFWKeyCallback[] pk;
+        final GLFWCharCallback[] pc = new GLFWCharCallback[1];
+        final GLFWKeyCallback[] pk = new GLFWKeyCallback[1];
         long win = GLFW.glfwGetCurrentContext();
         if (win == 0L) {
             return;
@@ -87,29 +87,33 @@ public final class IslandSearch {
         }
         hooked = true;
         hookedWindow = win;
-        GLFWKeyCallback newKey = (w, key, sc, action, mods) -> {
-            if (IslandSearch.typing()) {
-                IslandSearch.onKey(w, key, action, mods);
-                return;
-            }
-            if (pk[0] != null) {
-                pk[0].invoke(w, key, sc, action, mods);
-            }
-        };
-        GLFWCharCallback newChar = (w, cp) -> {
-            if (IslandSearch.typing()) {
-                if (cp >= 32 && cp != 127 && TEXT.length() < 80) {
-                    TEXT.appendCodePoint(cp);
-                    MusicHub.typing(TEXT.toString());
+        GLFWKeyCallback newKey = new GLFWKeyCallback() {
+            public void invoke(long w, int key, int sc, int action, int mods) {
+                if (IslandSearch.typing()) {
+                    IslandSearch.onKey(w, key, action, mods);
+                    return;
                 }
-                return;
-            }
-            if (pc[0] != null) {
-                pc[0].invoke(w, cp);
+                if (pk[0] != null) {
+                    pk[0].invoke(w, key, sc, action, mods);
+                }
             }
         };
-        pk = new GLFWKeyCallback[]{GLFW.glfwSetKeyCallback((long)win, newKey)};
-        pc = new GLFWCharCallback[]{GLFW.glfwSetCharCallback((long)win, newChar)};
+        GLFWCharCallback newChar = new GLFWCharCallback() {
+            public void invoke(long w, int cp) {
+                if (IslandSearch.typing()) {
+                    if (cp >= 32 && cp != 127 && TEXT.length() < 80) {
+                        TEXT.appendCodePoint(cp);
+                        MusicHub.typing(TEXT.toString());
+                    }
+                    return;
+                }
+                if (pc[0] != null) {
+                    pc[0].invoke(w, cp);
+                }
+            }
+        };
+        pk[0] = GLFW.glfwSetKeyCallback((long)win, newKey);
+        pc[0] = GLFW.glfwSetCharCallback((long)win, newChar);
         prevKey = pk[0];
         prevChar = pc[0];
         ownKey = newKey;

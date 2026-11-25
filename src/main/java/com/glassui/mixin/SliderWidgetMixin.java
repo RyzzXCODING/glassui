@@ -33,7 +33,7 @@ public abstract class SliderWidgetMixin {
         if (!GlassConfig.get().glassButtons) {
             return;
         }
-        class_339 w = (class_339)this;
+        class_339 w = (class_339)(Object)this;
         float a = w.method_75798();
         int x = w.method_46426();
         int y = w.method_46427();

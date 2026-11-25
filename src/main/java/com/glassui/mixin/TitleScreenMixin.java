@@ -40,7 +40,7 @@ extends class_437 {
         DockMenu.Layout layout = DockMenu.create(this);
         this.method_37060(layout.bar());
         for (class_4185 b : layout.items()) {
-            this.method_37063((class_364)b);
+            this.method_37063(b);
         }
     }
 }

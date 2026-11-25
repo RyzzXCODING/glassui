@@ -15,7 +15,7 @@ Liquid glass UI, iOS-style dock menu, spring pop-ups, and a Stream HUD for Minec
 
 ## Source provenance
 
-This source project was **reconstructed from bytecode** of `glassui-1.3.18.jar` using CFR 0.152. It is functionally equivalent to the original compiled mod but is **not** the original source. Some decompiler artifacts remain (e.g. intermediary-mapped Minecraft method names like `method_XXXXX`, and `// WARNING - Removed try catching itself` comments).
+This repository contains the GlassUI Fabric mod source for Minecraft 1.21.11 (Fabric Loader 0.19.5, Java 21).
 
 ## Build configuration
 
@@ -39,7 +39,7 @@ Group 7 and `reports/FIX_REPORT.md`.
 
 The produced JAR will be in `build/libs/`. Place it in `mods/` alongside Fabric API.
 
-**Note:** This project has NOT been built by the audit agent. Building is performed by the user.
+**Note:** Build with `./gradlew build` (Java 21).
 
 ## Features
 

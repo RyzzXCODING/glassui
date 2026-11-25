@@ -105,7 +105,7 @@ extends class_437 {
     }
 
     private <T extends class_339> T reg(T w) {
-        this.method_37063((class_364)w);
+        this.method_37063(w);
         this.ws.add(w);
         return w;
     }
@@ -472,8 +472,7 @@ extends class_437 {
             boolean ready = LocalPlayer.ready();
             boolean setting = LocalPlayer.settingUp();
             if (!needLogin) {
-                int dot;
-                int n = setting ? 16766474 : (ready ? 3199320 : (dot = cfg.localPlayer ? 16752394 : 9079446));
+                int dot = setting ? 16766474 : (ready ? 3199320 : (cfg.localPlayer ? 16752394 : 9079446));
                 String lab = setting ? "Installing player..." : (ready ? "Player ready" : (cfg.localPlayer ? "Player not set up" : "Background off"));
                 int ly = this.sy + this.contentH - (needSetup ? 38 : 20);
                 Glass.fill(ctx, this.sx + 10, ly + 1, 6.0f, 6.0f, 3.0f, Glass.c((int)(255.0f * a), dot), Glass.c((int)(255.0f * a), dot));

@@ -38,7 +38,7 @@ extends class_437 {
 
     private void btn(String msg, class_4185.class_4241 act, int x, int y, int w) {
         class_4185 b = class_4185.method_46430((class_2561)class_2561.method_43470((String)msg), (class_4185.class_4241)act).method_46434(x, y, w, 20).method_46431();
-        this.method_37063((class_364)b);
+        this.method_37063(b);
         this.ws.add((class_339)b);
     }
 
