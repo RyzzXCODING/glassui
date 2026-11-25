@@ -113,10 +113,10 @@ extends class_437 {
         Fx.draw(ctx, this.field_22793, "Theme", this.px + 18 + 2, this.py + 46, grey, false);
         Fx.draw(ctx, this.field_22793, "Font", this.px + 18 + 2, this.py + 114, grey, false);
         Glass.inset(ctx, this.px + 18, this.py + 182, 288, 76, 10, false, a);
+        m.popMatrix();
         for (class_339 w : this.ws) {
             w.method_25394(ctx, mx, my, dt);
         }
-        m.popMatrix();
     }
 }
 

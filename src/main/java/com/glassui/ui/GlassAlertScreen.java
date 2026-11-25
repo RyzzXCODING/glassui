@@ -39,7 +39,7 @@ extends class_437 {
         this.parent = parent;
         this.message = message;
         this.confirm = confirm;
-        this.onConfirm = onConfirm;
+        this.onConfirm = onConfirm == null ? () -> {} : onConfirm;
     }
 
     protected void method_25426() {

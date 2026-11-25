@@ -178,13 +178,16 @@ public final class StreamHudRenderer {
     private static void draw(class_332 ctx) {
         class_310 mc = class_310.method_1551();
         GlassConfig cfg = GlassConfig.get();
-        if (!cfg.hudEnabled || mc.field_1690.field_1842) {
+        if (mc == null || !cfg.hudEnabled || mc.field_1690.field_1842) {
+            StreamHudRenderer.endVolDrag();
             return;
         }
         if (mc.field_1755 instanceof HudEditorScreen) {
+            StreamHudRenderer.endVolDrag();
             return;
         }
         if (!(cfg.island.on || cfg.chat.on || cfg.song.on || cfg.profile.on || cfg.combo.on || cfg.alert.on || cfg.cassette.on || cfg.lyrics.on || cfg.requests.on || cfg.topTap.on)) {
+            StreamHudRenderer.endVolDrag();
             return;
         }
         long now = System.nanoTime();
@@ -203,15 +206,22 @@ public final class StreamHudRenderer {
 
     public static void drawPreview(class_332 ctx, Id selected, float dt) {
         class_310 mc = class_310.method_1551();
+        if (mc == null) {
+            return;
+        }
         float t = (float)(System.currentTimeMillis() % 100000L) / 1000.0f;
         StreamHudRenderer.frame(ctx, mc.field_1772, GlassConfig.get(), StreamHudRenderer.demo(), dt, t, true, selected);
     }
 
     public static R rect(Id id, int sw, int sh) {
+        class_310 mc = class_310.method_1551();
+        if (mc == null) {
+            return null;
+        }
         float[] sz;
-        class_327 tr = class_310.method_1551().field_1772;
+        class_327 tr = mc.field_1772;
         GlassConfig cfg = GlassConfig.get();
-        chatMaxH = 1.0E9f;
+        chatMaxH = id == Id.CHAT ? (float)sh / Math.max(0.5f, Math.min(2.5f, StreamHudRenderer.widget(cfg, id).scale)) - 4.0f : 1.0E9f;
         previewMode = true;
         if (id == Id.LYRICS) {
             StreamHudRenderer.lyrFit(sw, StreamHudRenderer.widget((GlassConfig)cfg, (Id)id).scale);
@@ -408,6 +418,9 @@ public final class StreamHudRenderer {
         StreamHudRenderer.previewMode = preview;
         for (Id id : StreamHudRenderer.DRAW_ORDER) {
             GlassConfig.Widget wc = StreamHudRenderer.widget(cfg, id);
+            if (id == Id.ISLAND && !wc.on && !preview) {
+                StreamHudRenderer.endVolDrag();
+            }
             if (!wc.on && !preview) continue;
             float e = id == Id.ISLAND && preview == false ? StreamHudRenderer.EXPAND.pos : 0.0f;
             if (id == Id.PROFILE) {
@@ -519,6 +532,10 @@ public final class StreamHudRenderer {
 
     private static void clickIsland(class_332 ctx, R r, Snap s) {
         class_310 mc = class_310.method_1551();
+        if (mc == null) {
+            StreamHudRenderer.endVolDrag();
+            return;
+        }
         if (mc.field_1755 == null) {
             expanded = false;
             IslandSearch.close();
@@ -1018,7 +1035,7 @@ public final class StreamHudRenderer {
 
     private static void clickCassette(class_332 ctx, R r) {
         class_310 mc = class_310.method_1551();
-        if (mc.field_1755 == null) {
+        if (mc == null || mc.field_1755 == null) {
             casDown = true;
             return;
         }
@@ -1550,6 +1567,9 @@ public final class StreamHudRenderer {
 
     private static Vitals vitals() {
         class_310 mc = class_310.method_1551();
+        if (mc == null) {
+            return null;
+        }
         class_746 p = mc.field_1724;
         if (p == null || p.method_68878() || p.method_7325()) {
             return null;

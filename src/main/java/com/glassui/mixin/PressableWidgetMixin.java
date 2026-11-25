@@ -13,18 +13,23 @@ import net.minecraft.class_4264;
 import net.minecraft.class_5676;
 import net.minecraft.class_7077;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value={class_4264.class})
 public abstract class PressableWidgetMixin {
+    @Shadow
+    protected void method_76256(class_332 ctx);
+
     @Inject(method={"method_48579"}, at={@At(value="HEAD")}, cancellable=true)
     private void glassui$render(class_332 ctx, int mx, int my, float dt, CallbackInfo ci) {
         PressableWidgetMixin self = this;
         if (self instanceof CustomGlassWidget) {
             CustomGlassWidget cg = (CustomGlassWidget)((Object)self);
             cg.renderGlass(ctx, mx, my, dt);
+            this.method_76256(ctx);
             ci.cancel();
             return;
         }
@@ -42,6 +47,7 @@ public abstract class PressableWidgetMixin {
             return;
         }
         GlassButtonRenderer.render(ctx, w);
+        this.method_76256(ctx);
         ci.cancel();
     }
 }

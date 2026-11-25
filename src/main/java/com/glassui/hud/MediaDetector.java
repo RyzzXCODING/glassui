@@ -8,7 +8,9 @@ import com.glassui.GlassUiClient;
 import com.glassui.hud.StreamData;
 import com.glassui.music.LocalPlayer;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -34,8 +36,36 @@ public final class MediaDetector {
         if (t != null) {
             t.interrupt();
         }
-        if (this.proc != null) {
-            this.proc.destroyForcibly();
+        synchronized (this) {
+            Process p = this.proc;
+            if (p != null) {
+                try {
+                    p.getOutputStream().close();
+                }
+                catch (IOException ignored) {
+                }
+                p.destroyForcibly();
+            }
+        }
+    }
+
+    private Process launch(ProcessBuilder pb) throws IOException {
+        synchronized (this) {
+            if (this.stopped) {
+                return null;
+            }
+            Process p = pb.start();
+            this.proc = p;
+            if (this.stopped) {
+                try {
+                    p.getOutputStream().close();
+                }
+                catch (IOException ignored) {
+                }
+                p.destroyForcibly();
+                return null;
+            }
+            return p;
         }
     }
 
@@ -71,8 +101,11 @@ public final class MediaDetector {
         String enc = Base64.getEncoder().encodeToString(PS.getBytes(StandardCharsets.UTF_16LE));
         ProcessBuilder pb = new ProcessBuilder("powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", enc);
         pb.redirectError(ProcessBuilder.Redirect.DISCARD);
-        this.proc = pb.start();
-        try (BufferedReader r = new BufferedReader(new InputStreamReader(this.proc.getInputStream(), StandardCharsets.UTF_8));){
+        Process p = this.launch(pb);
+        if (p == null) {
+            return;
+        }
+        try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8)); OutputStream stdin = p.getOutputStream()){
             String line;
             ArrayList<String[]> batch = new ArrayList<String[]>();
             while (!this.stopped && (line = r.readLine()) != null) {
@@ -89,10 +122,12 @@ public final class MediaDetector {
 
     private void linux(StreamData d) throws Exception {
         while (!this.stopped) {
-            Process p = new ProcessBuilder("playerctl", "-a", "metadata", "--format", "{{playerName}}\t{{status}}\t{{title}}\t{{artist}}\t{{album}}").redirectError(ProcessBuilder.Redirect.DISCARD).start();
-            this.proc = p;
+            Process p = this.launch(new ProcessBuilder("playerctl", "-a", "metadata", "--format", "{{playerName}}\t{{status}}\t{{title}}\t{{artist}}\t{{album}}").redirectError(ProcessBuilder.Redirect.DISCARD));
+            if (p == null) {
+                return;
+            }
             ArrayList<String[]> batch = new ArrayList<String[]>();
-            try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8));){
+            try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8)); OutputStream stdin = p.getOutputStream()){
                 String line;
                 while (!this.stopped && (line = r.readLine()) != null) {
                     String[] a = line.split("\t", -1);

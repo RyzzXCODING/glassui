@@ -113,7 +113,7 @@ public final class Suggest {
             String entry = e;
             h.removeIf(x -> x.equalsIgnoreCase(entry));
             h.add(0, entry);
-            while (h.size() > 20) {
+            while (h.size() > MAX_HISTORY) {
                 h.remove(h.size() - 1);
             }
             // ** MonitorExit[var3_3] (shouldn't be in output)
@@ -153,11 +153,11 @@ public final class Suggest {
         if (q.isEmpty()) {
             int i = 0;
             int j = 0;
-            while (out.size() < 14 && (i < rec.size() || j < pop.size())) {
+            while (out.size() < MAX_ROWS && (i < rec.size() || j < pop.size())) {
                 if (i < rec.size()) {
                     Suggest.add(out, rec.get(i++), TAG_RECENT);
                 }
-                if (out.size() >= 14 || j >= pop.size()) continue;
+                if (out.size() >= MAX_ROWS || j >= pop.size()) continue;
                 Suggest.add(out, pop.get(j++), TAG_POPULAR);
             }
         } else {
@@ -172,7 +172,7 @@ public final class Suggest {
             }
             if (q.equals(remoteFor)) {
                 for (String s : remote) {
-                    if (out.size() < 14) {
+                    if (out.size() < MAX_ROWS) {
                         Suggest.add(out, s, TAG_SUGGEST);
                         continue;
                     }

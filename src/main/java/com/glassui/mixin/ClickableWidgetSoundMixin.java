@@ -14,13 +14,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value={class_339.class})
 public abstract class ClickableWidgetSoundMixin {
-    @Inject(method={"method_25354"}, at={@At(value="HEAD")}, cancellable=true, require=0)
+    @Inject(method={"method_25354"}, at={@At(value="HEAD")}, cancellable=true)
     private void glassui$pop(class_1144 sm, CallbackInfo ci) {
         if (!GlassConfig.get().uiSound) {
             return;
         }
-        UiSound.click();
-        ci.cancel();
+        if (UiSound.click()) {
+            ci.cancel();
+        }
     }
 }
 

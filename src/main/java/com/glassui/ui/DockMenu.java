@@ -3,6 +3,7 @@
  */
 package com.glassui.ui;
 
+import com.glassui.GlassUiClient;
 import com.glassui.ui.Anim;
 import com.glassui.ui.CustomGlassWidget;
 import com.glassui.ui.Fx;
@@ -30,6 +31,8 @@ import net.minecraft.class_526;
 import org.joml.Matrix3x2fStack;
 
 public final class DockMenu {
+    private static boolean modsWarningLogged;
+
     public static Layout create(class_437 screen) {
         class_310 mc = class_310.method_1551();
         ArrayList<Entry> es = new ArrayList<Entry>();
@@ -45,7 +48,10 @@ public final class DockMenu {
                     mc.method_1507((class_437)c.getConstructor(class_437.class).newInstance(screen));
                 }
                 catch (Exception exception) {
-                    // empty catch block
+                    if (!modsWarningLogged) {
+                        modsWarningLogged = true;
+                        GlassUiClient.LOGGER.warn("Failed to open Mods screen", (Throwable)exception);
+                    }
                 }
             }));
         }
@@ -73,6 +79,9 @@ public final class DockMenu {
     extends class_4185
     implements CustomGlassWidget {
         private final Entry entry;
+        private final int baseX;
+        private final int baseY;
+        private final int baseSize;
         private final Spring hov = new Spring(1.0f, 1.0f, 320.0f, 22.0f);
         private final Spring pop = new Spring(0.0f, 1.0f, 200.0f, 20.0f);
         private final long startAt;
@@ -81,7 +90,11 @@ public final class DockMenu {
         Item(int x, int y, int size, Entry e, int index) {
             super(x, y, size, size, e.label(), b -> e.action().run(), field_40754);
             this.entry = e;
+            this.baseX = x;
+            this.baseY = y;
+            this.baseSize = size;
             this.startAt = System.nanoTime() + 120000000L + (long)index * 60000000L;
+            this.field_22763 = false;
         }
 
         public void method_75752(class_332 ctx, int mx, int my, float dt) {
@@ -94,14 +107,15 @@ public final class DockMenu {
                 this.last = now;
                 return;
             }
+            this.field_22763 = true;
             float d = Anim.smooth((float)(now - this.last) / 1.0E9f);
             this.last = now;
             this.hov.target = this.method_49606() ? 1.22f : 1.0f;
             this.hov.step(d);
             this.pop.step(d);
-            int x = this.method_46426();
-            int y = this.method_46427();
-            int sz = this.method_25368();
+            int x = this.baseX;
+            int y = this.baseY;
+            int sz = this.baseSize;
             float cx = (float)x + (float)sz / 2.0f;
             float bottom = y + sz;
             float s = this.hov.pos * this.pop.pos;
@@ -118,6 +132,7 @@ public final class DockMenu {
             Glass.ring(ctx, x, y, sz, sz, 10.0f, 0.5f, Glass.c(192, 0xFFFFFF), Glass.c(56, 0xFFFFFF));
             Icons.drawShadowed(ctx, this.entry.icon(), (float)x + (float)(sz - 20) / 2.0f, (float)y + (float)(sz - 20) / 2.0f, 20.0f, 0xFFFFFF, 255);
             m.popMatrix();
+            this.method_55444(Math.max(1, Math.round(s * (float)sz)), Math.max(1, Math.round(s * (float)sz)), Math.round(cx - s * (float)sz / 2.0f), Math.round(bottom + rise - s * (float)sz));
             if (this.method_49606()) {
                 class_327 tr = class_310.method_1551().field_1772;
                 int tw = Fx.w(tr, this.entry.label());

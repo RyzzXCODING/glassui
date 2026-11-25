@@ -6,6 +6,9 @@ package com.glassui.mixin;
 import com.glassui.GlassConfig;
 import com.glassui.ui.Fx;
 import com.glassui.ui.Glass;
+import com.glassui.ui.UiSound;
+import net.minecraft.class_1144;
+import net.minecraft.class_11876;
 import net.minecraft.class_310;
 import net.minecraft.class_327;
 import net.minecraft.class_332;
@@ -22,7 +25,10 @@ public abstract class SliderWidgetMixin {
     @Shadow
     protected double field_22753;
 
-    @Inject(method={"method_48579"}, at={@At(value="HEAD")}, cancellable=true, require=0)
+    @Shadow
+    private boolean field_62464;
+
+    @Inject(method={"method_48579"}, at={@At(value="HEAD")}, cancellable=true)
     private void glassui$render(class_332 ctx, int mx, int my, float dt, CallbackInfo ci) {
         if (!GlassConfig.get().glassButtons) {
             return;
@@ -47,7 +53,17 @@ public abstract class SliderWidgetMixin {
         class_327 tr = class_310.method_1551().field_1772;
         int tw = Fx.w(tr, w.method_25369());
         Fx.draw(ctx, tr, w.method_25369(), x + (wd - tw) / 2, y + (h - 8) / 2, Glass.c(Math.max(64, (int)(255.0f * a)), 0xFFFFFF), true);
+        if (w.method_49606()) {
+            ctx.method_74037(this.field_62464 ? class_11876.field_62457 : class_11876.field_62455);
+        }
         ci.cancel();
+    }
+
+    @Inject(method={"method_25354"}, at={@At(value="HEAD")}, cancellable=true)
+    private void glassui$sliderClick(class_1144 sm, CallbackInfo ci) {
+        if (GlassConfig.get().uiSound && UiSound.click()) {
+            ci.cancel();
+        }
     }
 }
 

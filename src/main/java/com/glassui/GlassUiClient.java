@@ -79,27 +79,26 @@ implements ClientModInitializer {
             LocalPlayer.stop();
         });
         ClientTickEvents.END_CLIENT_TICK.register(mc -> {
-            boolean cdown;
-            boolean mdown;
-            boolean down;
             ChatSound.tick();
             CombatFx.tick(mc);
             GlassConfig cfg = GlassConfig.get();
-            boolean bl = down = cfg.menuKey > 0 && mc.field_1755 == null && mc.field_1687 != null && GLFW.glfwGetKey((long)GLFW.glfwGetCurrentContext(), (int)cfg.menuKey) == 1;
-            if (down && !keyDown) {
+            long win = GLFW.glfwGetCurrentContext();
+            boolean menuPressed = win != 0L && cfg.menuKey > 0 && GLFW.glfwGetKey(win, (int)cfg.menuKey) == 1;
+            boolean musicPressed = win != 0L && cfg.musicKey > 0 && GLFW.glfwGetKey(win, (int)cfg.musicKey) == 1;
+            boolean cassettePressed = win != 0L && cfg.cassetteKey > 0 && GLFW.glfwGetKey(win, (int)cfg.cassetteKey) == 1;
+            boolean active = mc.field_1755 == null && mc.field_1687 != null;
+            if (active && menuPressed && !keyDown) {
                 mc.method_1507((class_437)new StreamHudConfigScreen(null));
             }
-            keyDown = down;
-            boolean bl2 = mdown = cfg.musicKey > 0 && mc.field_1755 == null && mc.field_1687 != null && GLFW.glfwGetKey((long)GLFW.glfwGetCurrentContext(), (int)cfg.musicKey) == 1;
-            if (mdown && !musicKeyDown) {
+            keyDown = menuPressed;
+            if (active && musicPressed && !musicKeyDown) {
                 mc.method_1507((class_437)new MusicScreen(null));
             }
-            musicKeyDown = mdown;
-            boolean bl3 = cdown = cfg.cassetteKey > 0 && mc.field_1755 == null && mc.field_1687 != null && GLFW.glfwGetKey((long)GLFW.glfwGetCurrentContext(), (int)cfg.cassetteKey) == 1;
-            if (cdown && !cassetteKeyDown) {
+            musicKeyDown = musicPressed;
+            if (active && cassettePressed && !cassetteKeyDown) {
                 MusicToggle.toggle();
             }
-            cassetteKeyDown = cdown;
+            cassetteKeyDown = cassettePressed;
             GlassUiClient.arrowKeys(mc, cfg);
         });
     }
@@ -108,15 +107,18 @@ implements ClientModInitializer {
         int dir;
         boolean dn;
         long win = GLFW.glfwGetCurrentContext();
-        boolean active = cfg.arrowKeys && mc.field_1755 == null && mc.field_1687 != null;
-        boolean right = active && GLFW.glfwGetKey((long)win, (int)262) == 1;
-        boolean up = active && GLFW.glfwGetKey((long)win, (int)265) == 1;
-        boolean bl = dn = active && GLFW.glfwGetKey((long)win, (int)264) == 1;
+        boolean active = cfg.arrowKeys && mc.field_1755 == null && mc.field_1687 != null && win != 0L;
+        boolean rightPressed = win != 0L && GLFW.glfwGetKey(win, (int)262) == 1;
+        boolean upPressed = win != 0L && GLFW.glfwGetKey(win, (int)265) == 1;
+        boolean downPressed = win != 0L && GLFW.glfwGetKey(win, (int)264) == 1;
+        boolean right = active && rightPressed;
+        boolean up = active && upPressed;
+        boolean bl = dn = active && downPressed;
         if (right && !skipKeyDown && StreamHud.DATA.song != null) {
             MediaControl.send(MediaControl.Cmd.NEXT);
             mc.field_1705.method_1758((class_2561)class_2561.method_43470((String)"Next song"), false);
         }
-        skipKeyDown = right;
+        skipKeyDown = rightPressed;
         int n = up == dn ? 0 : (dir = up ? 1 : -1);
         if (dir == 0) {
             volHold = 0;

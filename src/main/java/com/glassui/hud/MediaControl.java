@@ -7,6 +7,7 @@ import com.glassui.GlassUiClient;
 import com.glassui.hud.StreamData;
 import com.glassui.hud.StreamHud;
 import com.glassui.music.LocalPlayer;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.concurrent.TimeUnit;
@@ -59,8 +60,10 @@ public final class MediaControl {
             } else {
                 return;
             }
-            if (!p.waitFor(10L, TimeUnit.SECONDS)) {
-                p.destroyForcibly();
+            try (OutputStream stdin = p.getOutputStream()) {
+                if (!p.waitFor(10L, TimeUnit.SECONDS)) {
+                    p.destroyForcibly();
+                }
             }
         }
         catch (Exception e) {

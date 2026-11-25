@@ -85,10 +85,19 @@ extends class_437 {
         float d = Anim.smooth((float)(now - this.last) / 1.0E9f);
         this.last = now;
         GlassConfig cfg = GlassConfig.get();
+        GlassConfig.Widget barW = StreamHudRenderer.widget(cfg, this.sel);
+        String barInfo = StreamHudRenderer.label(this.sel) + "  -  " + String.format(Locale.ROOT, "%.1fx", Float.valueOf(barW.scale)) + (barW.on ? "" : "  (off)");
+        int barIw = Fx.w(this.field_22793, barInfo);
+        int infoX = (this.field_22789 - barIw) / 2 - 8;
+        String hint = "Drag a widget to move it - click to select - Esc / Done to save";
+        int hw = Fx.w(this.field_22793, hint);
+        int hintX = (this.field_22789 - hw) / 2 - 10;
         ctx.method_25294(0, 0, this.field_22789, this.field_22790, 0x60000000);
         StreamHudRenderer.drawPreview(ctx, this.sel, d);
         boolean bl = down = GLFW.glfwGetMouseButton((long)GLFW.glfwGetCurrentContext(), (int)0) == 1;
-        if (down && !this.prevDown && my < this.field_22790 - 44) {
+        boolean overInfoBar = mx >= infoX && mx < infoX + barIw + 16 && my >= this.field_22790 - 57 && my < this.field_22790 - 42;
+        boolean overHintBar = mx >= hintX && mx < hintX + hw + 20 && my >= 5 && my < 25;
+        if (down && !this.prevDown && my < this.field_22790 - 44 && !overInfoBar && !overHintBar) {
             StreamHudRenderer.Id hit = null;
             for (StreamHudRenderer.Id id : new StreamHudRenderer.Id[]{StreamHudRenderer.Id.ALERT, StreamHudRenderer.Id.ISLAND, StreamHudRenderer.Id.COMBO, StreamHudRenderer.Id.PROFILE, StreamHudRenderer.Id.CASSETTE, StreamHudRenderer.Id.LYRICS, StreamHudRenderer.Id.REQUESTS, StreamHudRenderer.Id.TOPTAP, StreamHudRenderer.Id.SONG, StreamHudRenderer.Id.CHAT}) {
                 StreamHudRenderer.R r = StreamHudRenderer.rect(id, this.field_22789, this.field_22790);
@@ -125,10 +134,8 @@ extends class_437 {
         int iw = Fx.w(this.field_22793, info);
         Glass.buttonLite(ctx, (this.field_22789 - iw) / 2 - 8, this.field_22790 - 57, iw + 16, 15, 7, 0x303040, 1.2f, 1.0f);
         Fx.draw(ctx, this.field_22793, info, (this.field_22789 - iw) / 2, this.field_22790 - 53, -1, true);
-        String hint = "Drag a widget to move it - click to select - Esc / Done to save";
-        int hw = Fx.w(this.field_22793, hint);
-        Glass.buttonLite(ctx, (this.field_22789 - hw) / 2 - 10, 5, hw + 20, 20, 10, 0xFFFFFF, 1.0f, 1.0f);
-        Fx.draw(ctx, this.field_22793, hint, (this.field_22789 - hw) / 2, 11, -1513232, true);
+        Glass.buttonLite(ctx, hintX, 5, hw + 20, 20, 10, 0xFFFFFF, 1.0f, 1.0f);
+        Fx.draw(ctx, this.field_22793, hint, hintX + 10, 11, -1513232, true);
         for (class_339 c : this.ws) {
             c.method_25394(ctx, mx, my, dt);
         }

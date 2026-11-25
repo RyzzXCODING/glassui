@@ -106,9 +106,9 @@ final class TikTokClient {
                             String clip = s.length() > 300 ? s.substring(0, 300) : s;
                             String low = clip.toLowerCase();
                             if (low.contains("social") || low.contains("follow")) {
-                                GlassUiClient.LOGGER.info("TikTok unhandled social/follow event: {}", (Object)clip);
+                                GlassUiClient.LOGGER.info("TikTok unhandled social/follow event ({} chars)", (Object)Integer.valueOf(clip.length()));
                             } else {
-                                GlassUiClient.LOGGER.debug("TikTok unhandled: {}", (Object)clip);
+                                GlassUiClient.LOGGER.debug("TikTok unhandled ({} chars)", (Object)Integer.valueOf(clip.length()));
                             }
                         }
                     }
@@ -152,7 +152,9 @@ final class TikTokClient {
         if (s == null) {
             return "Error";
         }
-        return (s = s.replace('\n', ' ')).length() > 48 ? s.substring(0, 48) : s;
+        s = s.replace('\n', ' ').replaceAll("(?i)(https?|wss?)://\\S+", "[url]");
+        s = s.replaceAll("(?i)(api[_-]?key|key|token|access[_-]?token)\\s*[:=]\\s*[\"']?[^&\\s\"',}]+", "$1=[redacted]");
+        return s.length() > 48 ? s.substring(0, 48) : s;
     }
 }
 

@@ -53,6 +53,10 @@ A mandatory second-pass review found 10 decompiler artifacts that would have pre
 
 Full detail: `reports/SECOND_PASS_AUDIT.md`. **No build was run; all of these need build verification.**
 
+## Final Repair Round (user: "fix all errors")
+
+All remaining confirmed findings were fixed across 29 files: core/UI (L1–L4, L6, M-1–M-3), HUD (F5–F11), music (N1–N8, N10–N12, THREAD-05), and mixins/metadata (MIX-01/02/03, A-10, DEP-03/04). Full detail: `reports/ALL_ERRORS_FIXED_REPORT.md`. **No build was run.**
+
 ## Deliberately Not Fixed
 
 - **GUI-01** (Spotify UI unreachable) — enabling it would expose a currently-disabled platform; requires user decision.

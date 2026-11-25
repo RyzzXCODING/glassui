@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -124,9 +125,13 @@ public final class Lyrics {
         String err = "";
         String title = Lyrics.cleanTitle(rawTitle);
         String artist = Lyrics.cleanArtist(rawArtist);
+        long deadlineNs = System.nanoTime() + TimeUnit.SECONDS.toNanos(15L);
         for (String url : Lyrics.candidates(rawTitle, rawArtist)) {
             if (g != gen) {
                 return;
+            }
+            if (System.nanoTime() >= deadlineNs) {
+                break;
             }
             try {
                 String lrc = Lyrics.fetch(url);
@@ -139,12 +144,12 @@ public final class Lyrics {
                 GlassUiClient.LOGGER.warn("Lyrics LRCLIB failed: {}", (Object)e.toString());
             }
         }
-        if (found.isEmpty() && g == gen) {
+        if (found.isEmpty() && g == gen && System.nanoTime() < deadlineNs) {
             try {
                 String q = (title + " " + artist).trim();
-                String lrc = Lyrics.netease(q, title);
-                if (lrc == null && !artist.isEmpty()) {
-                    lrc = Lyrics.netease(title, title);
+                String lrc = Lyrics.netease(q, title, deadlineNs);
+                if (lrc == null && !artist.isEmpty() && System.nanoTime() < deadlineNs) {
+                    lrc = Lyrics.netease(title, title, deadlineNs);
                 }
                 GlassUiClient.LOGGER.info("Lyrics NetEase '{}' -> {}", (Object)q, (Object)(lrc == null ? "none" : "found"));
                 if (lrc != null) {
@@ -179,8 +184,8 @@ public final class Lyrics {
         return s == null ? "" : s.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+", "");
     }
 
-    private static String netease(String query, String title) throws Exception {
-        if (query.isBlank()) {
+    private static String netease(String query, String title, long deadlineNs) throws Exception {
+        if (query.isBlank() || System.nanoTime() >= deadlineNs) {
             return null;
         }
         String body = Lyrics.get("https://music.163.com/api/search/get/web?csrf_token=&s=" + Lyrics.enc(query) + "&type=1&offset=0&total=true&limit=6", true);
@@ -197,6 +202,9 @@ public final class Lyrics {
         }
         String want = Lyrics.norm(title);
         for (JsonElement e : res.getAsJsonObject().getAsJsonArray("songs")) {
+            if (System.nanoTime() >= deadlineNs) {
+                break;
+            }
             String text;
             JsonElement lrc;
             JsonElement lr;

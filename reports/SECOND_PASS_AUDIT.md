@@ -105,12 +105,10 @@ Every approved fix from `REPAIR_PLAN.md` Groups 1–6 was re-read by independent
 
 **Caveat:** URL resolution is not dependency resolution or compilation. No build verification exists.
 
-## 6. Readiness Status
+## 6. Readiness Status — UPDATED
 
-**NOT READY FOR BUILD** — until build verification is explicitly approved and performed. Source-level blockers BP-01..BP-10 are fixed, but:
+All remaining confirmed errors in §4 (N1–N12, F5–F11, M-1–M-3, L1–L4, L6, MIX-01/02/03, THREAD-05, DEP-03/04, A-10) were subsequently fixed after the user's explicit approval *"fix all errors and then confirm to me once they have been fixed"*. See `reports/ALL_ERRORS_FIXED_REPORT.md`.
 
-1. No compilation has been run; the type fixes and the Gradle syntax fix need build confirmation.
-2. Unfixed HIGH/MEDIUM runtime issues remain (N1–N4, M-1–M-3, F5/F6, N5, A-04 MIX-01) and require a user decision.
-3. Two low-impact documentation items remain (A-11 missing LICENSE file, A-14 ineffective version expansion).
+Only A-11 (missing LICENSE file), A-14 (ineffective version expansion) and N9 (YouTube client versions) remain deliberately unchanged and documented.
 
-No in-game test was performed. No JAR was produced or uploaded. No release was created.
+**Status: all confirmed errors fixed in source; NOT build-verified.** No compilation, JAR, release, or in-game test has been performed. Build remains gated on explicit user approval.

@@ -29,6 +29,7 @@ import java.util.Locale;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import net.minecraft.class_11909;
 import net.minecraft.class_2561;
 import net.minecraft.class_310;
 import net.minecraft.class_327;
@@ -259,6 +260,14 @@ extends class_437 {
         this.requestClose();
     }
 
+    @Override
+    public boolean method_25402(class_11909 click, boolean doubled) {
+        if (this.closing) {
+            return false;
+        }
+        return super.method_25402(click, doubled);
+    }
+
     private List<MusicHub.Track> currentList() {
         int ver = MusicHub.version() * 31 + GlassConfig.get().musicHistory.size();
         if (ver != this.listVer) {
@@ -399,7 +408,7 @@ extends class_437 {
         class_327 tr = this.field_22793;
         long win = GLFW.glfwGetCurrentContext();
         boolean bl = en = GLFW.glfwGetKey((long)win, (int)257) == 1 || GLFW.glfwGetKey((long)win, (int)335) == 1;
-        if (en && !this.enterDown && view == View.SEARCH && this.queryF != null && this.queryF.method_25370()) {
+        if (!this.closing && en && !this.enterDown && view == View.SEARCH && this.queryF != null && this.queryF.method_25370()) {
             this.search();
         }
         this.enterDown = en;
@@ -408,7 +417,10 @@ extends class_437 {
         int vy = this.barY + 23 - 2;
         boolean over = mx >= vx - 4 && mx <= vx + vw + 4 && my >= vy - 7 && my <= vy + 11;
         boolean bl2 = down = GLFW.glfwGetMouseButton((long)win, (int)0) == 1;
-        if (down && !this.mouseWasDown && over) {
+        if (this.closing) {
+            this.dragVol = false;
+        }
+        if (!this.closing && down && !this.mouseWasDown && over) {
             this.dragVol = true;
         }
         if (!down && this.dragVol) {
@@ -475,12 +487,12 @@ extends class_437 {
             this.drawMain(ctx, tr, a, white, grey, dim);
             this.drawPlayerBar(ctx, tr, a, white, grey, dim, vx, vy, vw, over);
         }
+        m.popMatrix();
         if (p > 0.55f) {
             for (class_339 w : this.ws) {
                 w.method_25394(ctx, mx, my, dt);
             }
         }
-        m.popMatrix();
     }
 
     private void drawMain(class_332 ctx, class_327 tr, float a, int white, int grey, int dim) {

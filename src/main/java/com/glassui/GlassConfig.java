@@ -107,6 +107,7 @@ public class GlassConfig {
     }
 
     public static void load() {
+        inst = new GlassConfig();
         try {
             if (Files.exists(GlassConfig.path(), new LinkOption[0])) {
                 inst = (GlassConfig)GSON.fromJson(Files.readString(GlassConfig.path()), GlassConfig.class);

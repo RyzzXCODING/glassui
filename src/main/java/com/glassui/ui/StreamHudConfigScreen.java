@@ -575,8 +575,8 @@ extends class_437 {
             StreamData.NowPlaying np = d.song;
             int by = this.py + 74 + 68;
             Icons.drawShadowed(ctx, IconShapes.Shape.NOTE, this.px + 18 + 12, by + 14, 12.0f, np == null ? 0x909098 : 3199320, 255);
-            String string = t1 = np == null ? "Nothing detected" : np.title();
-            String t2 = np == null ? "Play something in your music app" : (np.artist().isBlank() ? np.source() : np.artist() + " - " + np.source());
+            String string = t1 = np == null ? "Nothing detected" : (np.title() == null ? "" : np.title());
+            String t2 = np == null ? "Play something in your music app" : (np.artist() == null || np.artist().isBlank() ? np.source() : np.artist() + " - " + np.source());
             Fx.draw(ctx, this.field_22793, Fx.trim(this.field_22793, t1, this.pw - 36 - 44), this.px + 18 + 32, by + 9, -1, true);
             Fx.draw(ctx, this.field_22793, Fx.trim(this.field_22793, t2, this.pw - 36 - 44), this.px + 18 + 32, by + 22, grey, false);
         }

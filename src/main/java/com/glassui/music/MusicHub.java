@@ -73,6 +73,10 @@ public final class MusicHub {
     private static final Pattern YT_OWNER;
     private static final ScheduledExecutorService VOL_EX;
     private static final AtomicBoolean VOL_PENDING;
+    private static final ExecutorService SETUP_EX;
+    private static final ScheduledExecutorService SAVE_EX;
+    private static final AtomicBoolean SAVE_PENDING;
+    private static final String ASYNC_PLAYBACK = "<async-playback-pending>";
 
     private MusicHub() {
     }
@@ -184,7 +188,7 @@ public final class MusicHub {
             MusicHub.set("Music is off", false);
             return;
         }
-        if ("SUGGEST".equals(t.provider())) {
+        if (Suggest.PROVIDER.equals(t.provider())) {
             MusicHub.playQuery(t.id());
             return;
         }
@@ -316,6 +320,9 @@ public final class MusicHub {
             return;
         }
         Suggest.remember(t);
+        if (MusicHub.ASYNC_PLAYBACK.equals(note)) {
+            return;
+        }
         MusicHub.set((String)(note != null ? note : "Playing: " + MusicHub.clip(t.title())), false);
     }
 
@@ -366,7 +373,30 @@ public final class MusicHub {
         LocalPlayer.probe();
         if (!LocalPlayer.ready() && cfg.localPlayer) {
             MusicHub.set("Setting up the player (first time only)...", true);
-            LocalPlayer.setup();
+            SETUP_EX.execute(() -> {
+                try {
+                    LocalPlayer.setup();
+                    if (LocalPlayer.ready()) {
+                        LocalPlayer.play(q, at);
+                        MusicHub.set("Playing: " + MusicHub.clip(t.title()), false);
+                        return;
+                    }
+                    if (cfg.browserFallback || !cfg.localPlayer) {
+                        Launcher.open("https://music.youtube.com/watch?v=" + t.id());
+                        MusicHub.set("Opened in browser. " + LocalPlayer.statusLine(), false);
+                        return;
+                    }
+                    MusicHub.set(LocalPlayer.statusLine(), false);
+                }
+                catch (UserError e) {
+                    MusicHub.set(e.getMessage(), false);
+                }
+                catch (Exception e) {
+                    GlassUiClient.LOGGER.warn("Music play failed: {}", (Object)e.toString());
+                    MusicHub.set("Play failed (" + MusicHub.clip(String.valueOf(e.getMessage())) + ")", false);
+                }
+            });
+            return MusicHub.ASYNC_PLAYBACK;
         }
         if (LocalPlayer.ready()) {
             LocalPlayer.play(q, at);
@@ -400,25 +430,39 @@ public final class MusicHub {
         MusicHub.set("Waiting for Spotify login in your browser...", true);
         Thread th = new Thread(() -> {
             try {
-                String code;
+                String code = null;
                 SecureRandom rnd = new SecureRandom();
                 String verifier = MusicHub.rand(rnd, 64);
                 String state = MusicHub.rand(rnd, 16);
                 String challenge = Base64.getUrlEncoder().withoutPadding().encodeToString(MessageDigest.getInstance("SHA-256").digest(verifier.getBytes(StandardCharsets.US_ASCII)));
                 String auth = "https://accounts.spotify.com/authorize?client_id=" + MusicHub.enc(cid) + "&response_type=code&redirect_uri=" + MusicHub.enc(SPOTIFY_REDIRECT) + "&code_challenge_method=S256&code_challenge=" + challenge + "&state=" + state + "&scope=" + MusicHub.enc("user-modify-playback-state user-read-playback-state");
-                try (ServerSocket ss = new ServerSocket(8898, 1, InetAddress.getByName("127.0.0.1"));){
+                try (ServerSocket ss = new ServerSocket(SPOTIFY_PORT, 1, InetAddress.getByName("127.0.0.1"));){
                     ss.setSoTimeout(180000);
+                    long stopAt = System.currentTimeMillis() + 180000L;
                     Launcher.open(auth);
-                    try (Socket s = ss.accept();){
-                        s.setSoTimeout(10000);
-                        BufferedReader br = new BufferedReader(new InputStreamReader(s.getInputStream(), StandardCharsets.US_ASCII));
-                        String line = br.readLine();
-                        code = MusicHub.parseCode(line, state);
-                        String html = "<html><body style='font-family:sans-serif;background:#111;color:#eee;text-align:center;padding-top:80px'>" + (code != null ? "<h2>Spotify connected</h2><p>You can close this tab and go back to Minecraft.</p>" : "<h2>Login failed</h2><p>Go back to Minecraft and try again.</p>") + "</body></html>";
-                        byte[] body = html.getBytes(StandardCharsets.UTF_8);
-                        s.getOutputStream().write(("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: " + body.length + "\r\nConnection: close\r\n\r\n").getBytes(StandardCharsets.US_ASCII));
-                        s.getOutputStream().write(body);
-                        s.getOutputStream().flush();
+                    int connections = 0;
+                    while (code == null && connections < 32 && System.currentTimeMillis() < stopAt) {
+                        try (Socket s = ss.accept();){
+                            ++connections;
+                            s.setSoTimeout(10000);
+                            BufferedReader br = new BufferedReader(new InputStreamReader(s.getInputStream(), StandardCharsets.US_ASCII));
+                            for (int i = 0; i < 64 && code == null; ++i) {
+                                String line;
+                                try {
+                                    line = br.readLine();
+                                }
+                                catch (SocketTimeoutException e) {
+                                    break;
+                                }
+                                if (line == null) break;
+                                code = MusicHub.parseCode(line, state);
+                            }
+                            String html = "<html><body style='font-family:sans-serif;background:#111;color:#eee;text-align:center;padding-top:80px'>" + (code != null ? "<h2>Spotify connected</h2><p>You can close this tab and go back to Minecraft.</p>" : "<h2>Login failed</h2><p>Go back to Minecraft and try again.</p>") + "</body></html>";
+                            byte[] body = html.getBytes(StandardCharsets.UTF_8);
+                            s.getOutputStream().write(("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: " + body.length + "\r\nConnection: close\r\n\r\n").getBytes(StandardCharsets.US_ASCII));
+                            s.getOutputStream().write(body);
+                            s.getOutputStream().flush();
+                        }
                     }
                 }
                 if (code == null) {
@@ -438,7 +482,7 @@ public final class MusicHub {
                 MusicHub.set("Spotify login timed out", false);
             }
             catch (BindException e) {
-                MusicHub.set("Port 8898 is busy (login already open?)", false);
+                MusicHub.set("Port " + SPOTIFY_PORT + " is busy (login already open?)", false);
             }
             catch (Exception e) {
                 GlassUiClient.LOGGER.warn("Spotify login failed: {}", (Object)e.toString());
@@ -668,7 +712,17 @@ public final class MusicHub {
     }
 
     public static void commitVolume() {
-        GlassConfig.save();
+        if (SAVE_PENDING.compareAndSet(false, true)) {
+            SAVE_EX.schedule(() -> {
+                SAVE_PENDING.set(false);
+                try {
+                    GlassConfig.save();
+                }
+                catch (Exception e) {
+                    GlassUiClient.LOGGER.debug("Config save failed: {}", (Object)e.toString());
+                }
+            }, 150L, TimeUnit.MILLISECONDS);
+        }
         if (VOL_PENDING.compareAndSet(false, true)) {
             VOL_EX.execute(MusicHub::applyVolume);
         }
@@ -750,6 +804,17 @@ public final class MusicHub {
             return t;
         });
         VOL_PENDING = new AtomicBoolean();
+        SETUP_EX = Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "GlassUI-PlayerSetup");
+            t.setDaemon(true);
+            return t;
+        });
+        SAVE_EX = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "GlassUI-ConfigSave");
+            t.setDaemon(true);
+            return t;
+        });
+        SAVE_PENDING = new AtomicBoolean();
     }
 
     public record Track(String title, String artist, String provider, String id) {

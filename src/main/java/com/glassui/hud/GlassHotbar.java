@@ -28,7 +28,7 @@ public final class GlassHotbar {
 
     public static boolean render(class_332 ctx) {
         class_310 mc = class_310.method_1551();
-        class_746 p = mc.field_1724;
+        class_746 p = mc == null ? null : mc.field_1724;
         if (p == null || p.method_7325() || !GlassConfig.get().glassHotbar) {
             init = false;
             return false;

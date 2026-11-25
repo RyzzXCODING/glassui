@@ -113,7 +113,7 @@ public final class CombatFx {
             return;
         }
         class_310 mc = class_310.method_1551();
-        if (mc.field_1724 == null) {
+        if (mc == null || mc.field_1724 == null) {
             return;
         }
         class_327 tr = mc.field_1772;

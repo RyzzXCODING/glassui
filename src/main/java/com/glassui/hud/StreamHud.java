@@ -11,6 +11,7 @@ import com.glassui.hud.YouTubeClient;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import net.minecraft.class_310;
 
 public final class StreamHud {
     public static final StreamData DATA = new StreamData();
@@ -79,10 +80,13 @@ public final class StreamHud {
             media.stop();
         }
         if (ex != null) {
-            try {
-                ex.awaitTermination(2L, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+            class_310 mc = class_310.method_1551();
+            if (mc == null || !mc.method_18854()) {
+                try {
+                    ex.awaitTermination(2L, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
             }
         }
         yt = null;

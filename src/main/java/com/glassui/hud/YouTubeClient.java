@@ -177,6 +177,8 @@ final class YouTubeClient {
         if (s == null) {
             return "Error";
         }
+        s = s.replaceAll("(?i)(https?|wss?)://\\S+", "[url]");
+        s = s.replaceAll("(?i)(api[_-]?key|key|token|access[_-]?token)\\s*[:=]\\s*[\"']?[^&\\s\"',}]+", "$1=[redacted]");
         return s.length() > 40 ? s.substring(0, 40) : s;
     }
 }

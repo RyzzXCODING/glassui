@@ -10,6 +10,7 @@ import com.glassui.hud.StreamHud;
 import com.glassui.music.LocalPlayer;
 import com.glassui.music.MusicHub;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -24,6 +25,7 @@ public final class SongRequests {
     private static final Pattern CMD = Pattern.compile("^!(?:req|play)\\s+(.+)$", 2);
     private static final Pattern YT_LINK = Pattern.compile("(?:v=|youtu\\.be/|/shorts/|/live/)([A-Za-z0-9_-]{11})");
     private static final long USER_GAP_MS = 5000L;
+    private static final int MAX_LAST = 300;
     private static final Object LOCK = new Object();
     private static final ArrayDeque<Req> QUEUE = new ArrayDeque();
     private static final Map<String, Long> LAST = new HashMap<String, Long>();
@@ -104,12 +106,19 @@ public final class SongRequests {
             }
             String key = by.toLowerCase(Locale.ROOT);
             Long last = LAST.get(key);
-            if (last != null && now - last < 5000L) {
+            if (last != null && now - last < USER_GAP_MS) {
                 return;
             }
             LAST.put(key, now);
-            if (LAST.size() > 300) {
+            if (LAST.size() > MAX_LAST) {
                 LAST.values().removeIf(v -> now - v > 60000L);
+                if (LAST.size() > MAX_LAST) {
+                    List<Map.Entry<String, Long>> oldest = new ArrayList<Map.Entry<String, Long>>(LAST.entrySet());
+                    oldest.sort(Map.Entry.comparingByValue());
+                    for (int i = 0; i < oldest.size() - MAX_LAST; ++i) {
+                        LAST.remove(oldest.get(i).getKey());
+                    }
+                }
             }
         }
         MusicHub.Track t = MusicHub.resolveTop(query);
@@ -202,7 +211,16 @@ public final class SongRequests {
         }
         String id = t.id();
         String appId = np.appId();
-        // appId is normally an app/process id ("glassui-local", "chrome.exe"), not a video id;
+        if (LocalPlayer.APP_ID.equals(appId)) {
+            // LocalPlayer publishes a fixed app id, not the video id, and StreamData has no
+            // field to carry it. Compare title/artist/source conservatively instead.
+            // Residual risk: two different uploads with identical title+artist+source still
+            // compare equal here; distinguishing them requires a StreamData change.
+            String artist = t.artist() == null ? "" : t.artist().trim();
+            String nowPlayingArtist = np.artist() == null ? "" : np.artist().trim();
+            return artist.equalsIgnoreCase(nowPlayingArtist);
+        }
+        // appId is normally an app/process id ("chrome.exe"), not a video id;
         // only treat it as request identity when it actually has a track-id shape.
         boolean idComparable = id != null && !id.isBlank() && appId != null
             && (appId.matches("[A-Za-z0-9_-]{11}") || appId.matches("[A-Za-z0-9]{22}"));

@@ -72,23 +72,9 @@ final class YouTubeStream {
             }
         }
         JsonArray fmts = (sd = o.getAsJsonObject("streamingData")).has("adaptiveFormats") && sd.get("adaptiveFormats").isJsonArray() ? sd.getAsJsonArray("adaptiveFormats") : new JsonArray();
-        Stream best = null;
-        int bestScore = Integer.MIN_VALUE;
-        for (JsonElement el : fmts) {
-            JsonObject at;
-            if (!el.isJsonObject()) continue;
-            JsonObject f = el.getAsJsonObject();
-            String mime = YouTubeStream.str(f, "mimeType");
-            String url = YouTubeStream.str(f, "url");
-            if (!mime.startsWith("audio/") || url.isEmpty()) continue;
-            long br = f.has("bitrate") && f.get("bitrate").isJsonPrimitive() ? f.get("bitrate").getAsLong() : 0L;
-            int score = (int)Math.min(br / 1000L, 100000L);
-            if (f.has("audioTrack") && f.get("audioTrack").isJsonObject() && (at = f.getAsJsonObject("audioTrack")).has("audioIsDefault") && at.get("audioIsDefault").getAsBoolean()) {
-                score += 1000000;
-            }
-            if (score <= bestScore) continue;
-            bestScore = score;
-            best = new Stream(url, c.ua(), mime, br, Map.of("Range", "bytes=0-"), durMs);
+        Stream best = YouTubeStream.bestAudio(fmts, c, durMs, false);
+        if (best == null && sd.has("formatStreams") && sd.get("formatStreams").isJsonArray()) {
+            best = YouTubeStream.bestAudio(sd.getAsJsonArray("formatStreams"), c, durMs, true);
         }
         if (best != null) {
             return best;
@@ -98,6 +84,29 @@ final class YouTubeStream {
             return new Stream(hls, c.ua(), "application/x-mpegURL", 0L, Map.of(), durMs);
         }
         throw new IOException(c.name() + ": no audio format");
+    }
+
+    private static Stream bestAudio(JsonArray fmts, Client c, long durMs, boolean progressive) {
+        Stream best = null;
+        int bestScore = Integer.MIN_VALUE;
+        for (JsonElement el : fmts) {
+            JsonObject at;
+            if (!el.isJsonObject()) continue;
+            JsonObject f = el.getAsJsonObject();
+            String mime = YouTubeStream.str(f, "mimeType");
+            String url = YouTubeStream.str(f, "url");
+            if (url.isEmpty()) continue;
+            if (progressive ? !mime.startsWith("video/") : !mime.startsWith("audio/")) continue;
+            long br = f.has("bitrate") && f.get("bitrate").isJsonPrimitive() ? f.get("bitrate").getAsLong() : 0L;
+            int score = (int)Math.min(br / 1000L, 100000L);
+            if (!progressive && f.has("audioTrack") && f.get("audioTrack").isJsonObject() && (at = f.getAsJsonObject("audioTrack")).has("audioIsDefault") && at.get("audioIsDefault").getAsBoolean()) {
+                score += 1000000;
+            }
+            if (score <= bestScore) continue;
+            bestScore = score;
+            best = new Stream(url, c.ua(), mime, br, progressive ? Map.<String, String>of() : Map.of("Range", "bytes=0-"), durMs);
+        }
+        return best;
     }
 
     private static String str(JsonObject o, String k) {

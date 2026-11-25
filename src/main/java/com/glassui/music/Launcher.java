@@ -10,7 +10,7 @@ final class Launcher {
     }
 
     static void open(String target) {
-        if (!target.startsWith("https://") && !target.startsWith("spotify:")) {
+        if (target == null || (!target.startsWith("https://") && !target.startsWith("spotify:"))) {
             return;
         }
         String os = System.getProperty("os.name", "").toLowerCase();

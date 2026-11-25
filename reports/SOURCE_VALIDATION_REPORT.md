@@ -38,6 +38,10 @@ The initial static validation did **not** type-check Java. A mandatory second-pa
 
 **Type correctness is still unverified by compilation.** The checks above are structural only.
 
+## Final Repair Round
+
+After the user's *"fix all errors"* approval, all remaining confirmed errors were fixed (29 files) and re-checked: 50/50 files bracket-balanced, no CFR pseudo-tokens, no unimported class references in changed lines, and all new intermediary targets verified against 1.21.11 mappings/bytecode. See `reports/ALL_ERRORS_FIXED_REPORT.md`. Type correctness remains **unverified by compilation**.
+
 ## Explicit Statement
 
 **No build, compilation, Gradle task, JAR generation, or runtime execution was performed.**

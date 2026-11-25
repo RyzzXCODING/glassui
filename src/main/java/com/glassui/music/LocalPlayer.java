@@ -15,6 +15,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -167,6 +168,8 @@ public final class LocalPlayer {
                 if (!Files.isExecutable(exe)) {
                     return false;
                 }
+            } else if (!LocalPlayer.onPath(cmd)) {
+                return false;
             }
             Process p = new ProcessBuilder(cmd, flag).redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.DISCARD).start();
             if (!p.waitFor(3L, TimeUnit.SECONDS)) {
@@ -178,6 +181,31 @@ public final class LocalPlayer {
         catch (Exception e) {
             return false;
         }
+    }
+
+    private static boolean onPath(String cmd) {
+        String path = System.getenv("PATH");
+        if (path == null || path.isEmpty()) {
+            return false;
+        }
+        for (String dir : path.split(File.pathSeparator)) {
+            if (dir.isEmpty()) continue;
+            Path base = Path.of(dir);
+            if (Files.isExecutable(base.resolve(cmd))) {
+                return true;
+            }
+            if (WIN) {
+                String ext = System.getenv("PATHEXT");
+                if (ext != null) {
+                    for (String suffix : ext.split(";")) {
+                        if (!suffix.isEmpty() && Files.isExecutable(base.resolve(cmd + suffix))) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     public static boolean ready() {
@@ -334,7 +362,7 @@ public final class LocalPlayer {
             String o = LocalPlayer.readFuture(out).trim();
             if (p.exitValue() != 0 || o.isEmpty()) {
                 String e = LocalPlayer.readFuture(err).trim();
-                throw new IOException("yt-dlp: " + (String)(e.isEmpty() ? "exit " + p.exitValue() : e.substring(Math.max(0, e.length() - 200))));
+                throw new IOException("yt-dlp: " + LocalPlayer.safeError(e.isEmpty() ? "exit " + p.exitValue() : e));
             }
             JsonObject j = JsonParser.parseString((String)o.lines().findFirst().orElse("{}")).getAsJsonObject();
             if (!j.has("url")) {
@@ -374,6 +402,18 @@ public final class LocalPlayer {
         catch (TimeoutException e) {
             throw new IOException("yt-dlp output read timed out");
         }
+    }
+
+    // yt-dlp/ffmpeg stderr can contain signed, short-lived media URLs and tokens.
+    // Keep only short diagnostic text; never log the raw stream.
+    private static String safeError(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "unknown";
+        }
+        String s = raw.replaceAll("https?://[^\\s\"']+", "<url>");
+        s = s.replaceAll("[?&][^\\s\"'&]+=[^\\s\"'&]+", "?<redacted>");
+        s = s.replaceAll("[A-Za-z0-9_~.\\-]{32,}", "<redacted>").trim();
+        return s.length() > 200 ? s.substring(0, 200) : s;
     }
 
     public static boolean active() {
@@ -434,7 +474,7 @@ public final class LocalPlayer {
         cur = null;
         if (SongRequests.advance()) {
             if (!ok) {
-                GlassUiClient.LOGGER.warn("Playback failed, moving on to next request: {}", (Object)error);
+                GlassUiClient.LOGGER.warn("Playback failed, moving on to next request: {}", (Object)LocalPlayer.safeError(error));
             }
             return;
         }
@@ -454,8 +494,9 @@ public final class LocalPlayer {
         }
         LocalPlayer.clearSong();
         if (!ok) {
-            GlassUiClient.LOGGER.warn("Playback failed: {}", (Object)error);
-            MusicHub.status("Playback failed: " + (error == null ? "unknown" : (error.length() > 60 ? error.substring(0, 60) : error)));
+            GlassUiClient.LOGGER.warn("Playback failed: {}", (Object)LocalPlayer.safeError(error));
+            String shown = LocalPlayer.safeError(error);
+            MusicHub.status("Playback failed: " + (shown.length() > 60 ? shown.substring(0, 60) : shown));
         }
     }
 
@@ -568,21 +609,21 @@ public final class LocalPlayer {
                     o = this.playWithResume(YouTubeStream.resolve(this.track.id()), () -> YouTubeStream.resolve(this.track.id()));
                 }
                 catch (IOException e) {
-                    error = e.getMessage();
+                    error = LocalPlayer.safeError(e.getMessage());
                 }
                 if (!(this.cancelled || o != null && (o.ok() || o.started()))) {
                     String y;
                     if (o != null) {
                         error = o.error();
                     }
-                    GlassUiClient.LOGGER.info("Own resolver failed ({}), trying yt-dlp for the link", error);
+                    GlassUiClient.LOGGER.info("Own resolver failed ({}), trying yt-dlp for the link", LocalPlayer.safeError(error));
                     String string = y = ytdlp != null ? ytdlp : LocalPlayer.ensureYtdlp();
                     if (y != null) {
                         try {
                             o = this.playWithResume(LocalPlayer.resolveViaYtdlp(this.track.id(), y), () -> LocalPlayer.resolveViaYtdlp(this.track.id(), y));
                         }
                         catch (IOException e) {
-                            error = e.getMessage();
+                            error = LocalPlayer.safeError(e.getMessage());
                             o = null;
                         }
                     } else {
@@ -594,14 +635,15 @@ public final class LocalPlayer {
                 o = new Outcome(false, false, "no audio output device");
             }
             catch (InterruptedException e) {
-                return;
+                Thread.currentThread().interrupt();
+                o = new Outcome(false, false, "playback interrupted");
             }
             catch (Exception e) {
                 block33: {
                     if (!this.cancelled) break block33;
                     return;
                 }
-                o = new Outcome(false, false, e.getMessage() == null ? e.toString() : e.getMessage());
+                o = new Outcome(false, false, LocalPlayer.safeError(e.getMessage() == null ? e.toString() : e.getMessage()));
             }
             finally {
                 SourceDataLine l;
@@ -628,7 +670,7 @@ public final class LocalPlayer {
             double want;
             double got;
             Outcome o = this.playStream(st, 0.0);
-            for (int tries = 0; tries < 4 && !this.cancelled && o.ok() && st.durationMs() > 0L && !((got = (double)this.decoded / 176400.0) >= (want = (double)st.durationMs() / 1000.0) - 5.0); ++tries) {
+            for (int tries = 0; tries < 4 && !this.cancelled && o.ok() && st.durationMs() > 0L && !((got = (double)this.decoded / BYTES_PER_SEC) >= (want = (double)st.durationMs() / 1000.0) - 5.0); ++tries) {
                 YouTubeStream.Stream next;
                 GlassUiClient.LOGGER.info("Stream ended early ({}s of {}s), resuming", (Object)Math.round(got), (Object)Math.round(want));
                 try {
@@ -755,10 +797,8 @@ public final class LocalPlayer {
                 er.join(500L);
                 ArrayDeque arrayDeque = tail;
                 synchronized (arrayDeque) {
-                    error = String.join((CharSequence)" | ", tail);
-                }
-                if (error.isEmpty()) {
-                    error = "no audio decoded";
+                    String raw = String.join((CharSequence)" | ", tail);
+                    error = raw.isEmpty() ? "no audio decoded" : LocalPlayer.safeError(raw);
                 }
             }
             return new Outcome(ok, total > 0L, error);
