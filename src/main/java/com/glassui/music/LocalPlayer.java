@@ -54,8 +54,22 @@ import net.fabricmc.loader.api.FabricLoader;
 
 public final class LocalPlayer {
     public static final String APP_ID = "glassui-local";
-    private static final boolean WIN = System.getProperty("os.name", "").toLowerCase().contains("win");
+    private static final boolean WIN = System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
+    private static final boolean ANDROID = isAndroid();
     private static final AudioFormat FMT = new AudioFormat(44100.0f, 16, 2, true, false);
+
+    private static boolean isAndroid() {
+        String vendor = System.getProperty("java.vendor", "").toLowerCase(Locale.ROOT);
+        String vm = System.getProperty("java.vm.name", "").toLowerCase(Locale.ROOT);
+        String rt = System.getProperty("java.runtime.name", "").toLowerCase(Locale.ROOT);
+        if (vendor.contains("android") || vm.contains("dalvik") || rt.contains("android")) return true;
+        if (System.getenv("ANDROID_ROOT") != null || System.getenv("ANDROID_DATA") != null) return true;
+        try {
+            return Files.exists(Path.of("/system/build.prop"));
+        } catch (Exception e) {
+            return false;
+        }
+    }
     private static final ExecutorService EX = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "GlassUI-Player");
         t.setDaemon(true);
@@ -123,6 +137,9 @@ public final class LocalPlayer {
             c.add("/opt/homebrew/bin/ffmpeg");
             c.add("/usr/bin/ffmpeg");
         }
+        if (ANDROID) {
+            LocalPlayer.addAndroidFfmpegCandidates(c, dir, exe);
+        }
         for (String string : c) {
             if (!LocalPlayer.works(string)) continue;
             ffmpeg = string;
@@ -165,20 +182,38 @@ public final class LocalPlayer {
         try {
             if (cmd.indexOf('/') >= 0 || cmd.indexOf('\\') >= 0) {
                 Path exe = Path.of(cmd);
+                if (!Files.exists(exe)) {
+                    return false;
+                }
                 if (!Files.isExecutable(exe)) {
+                    try { exe.toFile().setExecutable(true, false); } catch (Exception ignored) {}
+                }
+                // On Android, Files.isExecutable can be unreliable for app-private storage;
+                // try executing it anyway.
+                if (!Files.isExecutable(exe) && !ANDROID) {
                     return false;
                 }
             } else if (!LocalPlayer.onPath(cmd)) {
                 return false;
             }
-            Process p = new ProcessBuilder(cmd, flag).redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.DISCARD).start();
-            if (!p.waitFor(3L, TimeUnit.SECONDS)) {
+            ProcessBuilder pb = new ProcessBuilder(cmd, flag);
+            pb.redirectErrorStream(true);
+            pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
+            Process p = pb.start();
+            if (!p.waitFor(5L, TimeUnit.SECONDS)) {
                 p.destroyForcibly();
                 return false;
             }
-            return p.exitValue() == 0;
+            boolean ok = p.exitValue() == 0;
+            if (ok && ANDROID) {
+                GlassUiClient.LOGGER.info("Found working ffmpeg candidate: {}", cmd);
+            }
+            return ok;
         }
         catch (Exception e) {
+            if (ANDROID && (cmd.contains("ffmpeg") || cmd.contains("FFmpeg"))) {
+                GlassUiClient.LOGGER.debug("ffmpeg candidate failed: {} ({})", cmd, e.toString());
+            }
             return false;
         }
     }
@@ -208,6 +243,76 @@ public final class LocalPlayer {
         return false;
     }
 
+    private static void addAndroidFfmpegCandidates(List<String> c, Path configDir, String exe) {
+        // Probe common app-private locations for Android launchers (Zalith/Pojav-like), Termux, and PATH/native dirs.
+        LinkedHashMap<String, Void> seen = new LinkedHashMap<>();
+        for (String s : c) if (s != null) seen.put(s, null);
+        java.util.function.Consumer<String> add = s -> { if (s != null && !s.isBlank() && !seen.containsKey(s)) { seen.put(s, null); c.add(s); } };
+        java.util.function.Consumer<Path> addDir = p -> {
+            if (p == null) return;
+            add.accept(p.resolve("ffmpeg").toString());
+            add.accept(p.resolve("ffmpeg" + exe).toString());
+            add.accept(p.resolve("bin/ffmpeg").toString());
+            add.accept(p.resolve("bin/ffmpeg" + exe).toString());
+            add.accept(p.resolve("tools/ffmpeg").toString());
+            add.accept(p.resolve("runtime/bin/ffmpeg").toString());
+            add.accept(p.resolve("runtimes/bin/ffmpeg").toString());
+            add.accept(p.resolve("games/bin/ffmpeg").toString());
+            add.accept(p.resolve("lib/ffmpeg").toString());
+        };
+
+        add.accept("/system/bin/ffmpeg");
+        add.accept("/system/xbin/ffmpeg");
+        add.accept("/vendor/bin/ffmpeg");
+        add.accept("/data/data/com.termux/files/usr/bin/ffmpeg");
+        add.accept("/data/local/tmp/ffmpeg");
+
+        Path parent = configDir;
+        for (int i = 0; i < 8 && parent != null; i++) {
+            addDir.accept(parent);
+            parent = parent.getParent();
+        }
+
+        String home = System.getProperty("user.home", "");
+        if (!home.isBlank()) addDir.accept(Path.of(home));
+        String cwd = System.getProperty("user.dir", "");
+        if (!cwd.isBlank()) addDir.accept(Path.of(cwd));
+
+        String[] envs = {"JAVA_HOME", "POJAV_NATIVEDIR", "MOD_ANDROID_RUNTIME", "TMPDIR", "HOME", "LD_LIBRARY_PATH", "PATH"};
+        for (String e : envs) {
+            String v = System.getenv(e);
+            if (v == null || v.isBlank()) continue;
+            for (String part : v.split(File.pathSeparator)) {
+                if (part == null || part.isBlank()) continue;
+                Path p = Path.of(part);
+                addDir.accept(p);
+                Path pp = p.getParent();
+                if (pp != null) addDir.accept(pp);
+            }
+        }
+
+        String jlp = System.getProperty("java.library.path", "");
+        for (String part : jlp.split(File.pathSeparator)) {
+            if (part == null || part.isBlank()) continue;
+            addDir.accept(Path.of(part));
+        }
+
+        // Last resort: shallow scan common roots for an ffmpeg file.
+        String[] roots = {"/data/data/com.termux/files/usr/bin", "/data/local/tmp", home, cwd};
+        for (String root : roots) {
+            if (root == null || root.isBlank()) continue;
+            try {
+                Path r = Path.of(root);
+                if (!Files.isDirectory(r)) continue;
+                try (var walk = Files.walk(r, 3)) {
+                    for (Path p : (Iterable<Path>)walk::iterator) {
+                        if (Files.isRegularFile(p) && p.getFileName().toString().startsWith("ffmpeg")) add.accept(p.toString());
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+    }
+
     public static boolean ready() {
         return GlassConfig.get().localPlayer && ffmpeg != null;
     }
@@ -233,6 +338,7 @@ public final class LocalPlayer {
         if (!cfg.autoSetupPlayer) return false;
         if (WIN) return true;
         String arch = System.getProperty("os.arch", "").toLowerCase(Locale.ROOT);
+        if (ANDROID) return arch.contains("aarch64") || arch.contains("arm64");
         return arch.contains("aarch64") || arch.contains("arm64") || arch.contains("amd64") || arch.contains("x86_64");
     }
 
@@ -261,6 +367,8 @@ public final class LocalPlayer {
             Files.createDirectories(dir, new FileAttribute[0]);
             if (WIN) {
                 setupFfmpegWindows(dir);
+            } else if (ANDROID) {
+                setupFfmpegAndroid(dir);
             } else {
                 setupFfmpegLinux(dir);
             }
@@ -309,13 +417,10 @@ public final class LocalPlayer {
     private static void setupFfmpegLinux(Path dir) throws Exception {
         String arch = System.getProperty("os.arch", "").toLowerCase(Locale.ROOT);
         String url;
-        String binName;
         if (arch.contains("aarch64") || arch.contains("arm64")) {
             url = "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-arm64-static.tar.xz";
-            binName = "ffmpeg";
         } else if (arch.contains("amd64") || arch.contains("x86_64")) {
             url = "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz";
-            binName = "ffmpeg";
         } else {
             throw new IOException("Unsupported Linux arch for auto-setup: " + arch);
         }
@@ -333,22 +438,14 @@ public final class LocalPlayer {
             pb.redirectErrorStream(true);
             Process p = pb.start();
             String outLog = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-            if (!p.waitFor(120L, TimeUnit.SECONDS)) {
+            if (!p.waitFor(180L, TimeUnit.SECONDS)) {
                 p.destroyForcibly();
                 throw new IOException("tar timed out unpacking ffmpeg");
             }
             if (p.exitValue() != 0) {
                 throw new IOException("tar failed: " + LocalPlayer.safeError(outLog));
             }
-            Path found = null;
-            try (var walk = Files.walk(tmp)) {
-                for (Path pth : (Iterable<Path>)walk::iterator) {
-                    if (Files.isRegularFile(pth) && pth.getFileName().toString().equals(binName)) {
-                        found = pth;
-                        break;
-                    }
-                }
-            }
+            Path found = LocalPlayer.findFile(tmp, "ffmpeg");
             if (found == null) {
                 throw new IOException("ffmpeg binary not found in archive");
             }
@@ -365,6 +462,59 @@ public final class LocalPlayer {
             Files.deleteIfExists(archive);
             LocalPlayer.deleteTree(tmp);
         }
+    }
+
+    private static void setupFfmpegAndroid(Path dir) throws Exception {
+        String arch = System.getProperty("os.arch", "").toLowerCase(Locale.ROOT);
+        String asset;
+        if (arch.contains("aarch64") || arch.contains("arm64")) {
+            asset = "ffmpeg-arm64-v8a";
+        } else {
+            throw new IOException("Unsupported Android arch for auto-setup: " + arch);
+        }
+        setupStatus = "Downloading ffmpeg...";
+        MusicHub.status(setupStatus);
+        Path out = dir.resolve("ffmpeg");
+        Path tmp = dir.resolve("ffmpeg.part");
+        String[] urls = {
+            "https://github.com/Khang-NT/ffmpeg-binary-android/releases/latest/download/" + asset,
+            "https://github.com/Khang-NT/ffmpeg-binary-android/releases/download/2018-07-31/" + asset
+        };
+        IOException last = null;
+        for (String url : urls) {
+            try {
+                setupStatus = "Downloading ffmpeg...";
+                MusicHub.status(setupStatus);
+                LocalPlayer.download(url, tmp);
+                Files.move(tmp, out, StandardCopyOption.REPLACE_EXISTING);
+                try { out.toFile().setExecutable(true, false); } catch (Exception ignored) {}
+                if (LocalPlayer.works(out.toString())) {
+                    ffmpeg = out.toString();
+                    GlassUiClient.LOGGER.info("Android ffmpeg ready: {}", out);
+                    return;
+                }
+                last = new IOException("Downloaded ffmpeg does not run: " + out);
+                GlassUiClient.LOGGER.warn("Android ffmpeg candidate failed: {}", url);
+            } catch (Exception e) {
+                last = e instanceof IOException ? (IOException)e : new IOException(e.toString(), e);
+                Files.deleteIfExists(tmp);
+                GlassUiClient.LOGGER.warn("Android ffmpeg download failed: {} ({})", url, e.toString());
+            }
+        }
+        // Probe any existing ffmpeg before giving up.
+        LocalPlayer.probe();
+        if (LocalPlayer.ready()) return;
+        if (last != null) throw last;
+    }
+
+    private static Path findFile(Path root, String name) throws IOException {
+        if (root == null || !Files.exists(root)) return null;
+        try (var walk = Files.walk(root)) {
+            for (Path p : (Iterable<Path>)walk::iterator) {
+                if (Files.isRegularFile(p) && p.getFileName().toString().equals(name)) return p;
+            }
+        }
+        return null;
     }
 
     private static void deleteTree(Path root) throws IOException {
@@ -403,17 +553,27 @@ public final class LocalPlayer {
             if (ytdlp != null) {
                 return ytdlp;
             }
-            if (!WIN || !GlassConfig.get().autoSetupPlayer) {
+            if (ANDROID || !GlassConfig.get().autoSetupPlayer) {
                 return null;
             }
             try {
                 Path dir = FabricLoader.getInstance().getConfigDir().resolve("glassui");
                 Files.createDirectories(dir, new FileAttribute[0]);
-                MusicHub.status("Downloading yt-dlp...");
-                Path target = dir.resolve("yt-dlp.exe");
-                LocalPlayer.download("https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe", target);
-                if (LocalPlayer.works(target.toString(), "--version")) {
-                    ytdlp = target.toString();
+                if (WIN) {
+                    MusicHub.status("Downloading yt-dlp...");
+                    Path target = dir.resolve("yt-dlp.exe");
+                    LocalPlayer.download("https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe", target);
+                    if (LocalPlayer.works(target.toString(), "--version")) {
+                        ytdlp = target.toString();
+                    }
+                } else {
+                    MusicHub.status("Downloading yt-dlp...");
+                    Path target = dir.resolve("yt-dlp");
+                    LocalPlayer.download("https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp", target);
+                    target.toFile().setExecutable(true, false);
+                    if (LocalPlayer.works(target.toString(), "--version")) {
+                        ytdlp = target.toString();
+                    }
                 }
             }
             catch (Exception e) {
@@ -644,7 +804,9 @@ public final class LocalPlayer {
         queue = List.of();
         FFMPEG_HINT = WIN
             ? "Put ffmpeg.exe in config/glassui/ or run: winget install ffmpeg"
-            : "Put ffmpeg in config/glassui/ or install via package manager (apt/dnf/pacman/apk install ffmpeg).";
+            : (ANDROID
+                ? "Put an Android-compatible arm64 ffmpeg binary in config/glassui/ffmpeg and allow execute permission."
+                : "Put ffmpeg in config/glassui/ or install via package manager (apt/dnf/pacman install ffmpeg).");
         setupStatus = "";
         DL = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).connectTimeout(Duration.ofSeconds(15L)).build();
         YT_LOCK = new Object();
