@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "glassui",
+  "version": "1.3.18",
+  "name": "GlassUI",
+  "description": "Liquid glass UI, iOS-style dock menu, spring pop-ups, and a Stream HUD (TikTok / YouTube live, Dynamic Island, live chat, gift/follow pop-ups, now playing, in-game music search).",
+  "authors": ["You"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["com.glassui.GlassUiClient"],
+    "modmenu": ["com.glassui.GlassModMenu"]
+  },
+  "mixins": ["glassui.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.18.1",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

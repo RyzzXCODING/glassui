@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "com.glassui.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "ClickableWidgetSoundMixin",
+    "PressableWidgetMixin",
+    "SliderWidgetMixin",
+    "TitleScreenMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
