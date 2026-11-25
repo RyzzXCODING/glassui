@@ -81,5 +81,12 @@ second-pass audit`) was also pushed to `master`: it corrected invalid Kotlin DSL
 in `settings.gradle.kts`, added the ModMenu repository, raised ModMenu to `17.0.1`
 (MC `>=1.21.11 <26`), applied `archives_base_name`, and updated the audit reports.
 
+A fourth follow-up commit `bacd813` (`Fix all remaining confirmed errors (core, UI, HUD,
+music, mixins, metadata)`) was pushed to `master`: 33 files changed (29 Java/resource
+sources plus 4 updated reports), fixing every remaining confirmed error (L1–L4, L6,
+M-1–M-3, F5–F11, N1–N8, N10–N12, THREAD-05, MIX-01/02/03, A-10, DEP-03/04). Remote and
+local HEAD verified identical (`bacd813e48cde9a2f8ab25c4ff9051dc816d463a`); working tree
+clean. No force-push.
+
 No JAR, build artifact, token, or secret was uploaded. No GitHub Release was created
 (no build has been performed).
